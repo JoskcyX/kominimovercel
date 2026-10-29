@@ -153,7 +153,7 @@ function QuizControl() {
           </Link>
         </Button>
         <span className="font-display text-xl font-bold">
-          Komi<span className="text-primary">nimo</span>
+          Kọ́mì<span className="text-primary">nímọ̀</span>
         </span>
       </header>
 

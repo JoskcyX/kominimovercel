@@ -41,7 +41,7 @@ function CourseCatalog() {
     <div className="min-h-screen confetti-bg">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <Link to="/" className="font-display text-2xl font-bold">
-          Komi<span className="text-primary">nimo</span>
+          Kọ́mì<span className="text-primary">nímọ̀</span>
         </Link>
         <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">
           <Link to="/auth">Sign in</Link>

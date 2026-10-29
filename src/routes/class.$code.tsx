@@ -303,7 +303,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen confetti-bg">
       <header className="mx-auto flex max-w-3xl items-center gap-2 px-6 py-6">
-        <Link to="/" className="font-display text-2xl font-bold">Komi<span className="text-primary">nimo</span></Link>
+        <Link to="/" className="font-display text-2xl font-bold">Kọ́mì<span className="text-primary">nímọ̀</span></Link>
         <BookOpen className="size-5 text-secondary" />
       </header>
       <main className="mx-auto max-w-3xl px-6 pb-24">{children}</main>

@@ -14,16 +14,217 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      answers: {
+        Row: {
+          created_at: string
+          id: string
+          is_correct: boolean
+          participant_id: string
+          question_id: string
+          response: string
+          time_ms: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          participant_id: string
+          question_id: string
+          response?: string
+          time_ms?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          participant_id?: string
+          question_id?: string
+          response?: string
+          time_ms?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "answers_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participants: {
+        Row: {
+          finished_at: string | null
+          id: string
+          joined_at: string
+          name: string
+          phone: string
+          quiz_id: string
+          score: number
+          total_time_ms: number
+        }
+        Insert: {
+          finished_at?: string | null
+          id?: string
+          joined_at?: string
+          name: string
+          phone: string
+          quiz_id: string
+          score?: number
+          total_time_ms?: number
+        }
+        Update: {
+          finished_at?: string | null
+          id?: string
+          joined_at?: string
+          name?: string
+          phone?: string
+          quiz_id?: string
+          score?: number
+          total_time_ms?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participants_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string
+          id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          correct_answer: string
+          created_at: string
+          id: string
+          options: Json
+          order_index: number
+          prompt: string
+          quiz_id: string
+          time_limit: number
+          type: Database["public"]["Enums"]["question_type"]
+        }
+        Insert: {
+          correct_answer?: string
+          created_at?: string
+          id?: string
+          options?: Json
+          order_index?: number
+          prompt?: string
+          quiz_id: string
+          time_limit?: number
+          type?: Database["public"]["Enums"]["question_type"]
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string
+          id?: string
+          options?: Json
+          order_index?: number
+          prompt?: string
+          quiz_id?: string
+          time_limit?: number
+          type?: Database["public"]["Enums"]["question_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quizzes: {
+        Row: {
+          created_at: string
+          id: string
+          join_code: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["quiz_status"]
+          title: string
+          tutor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          join_code: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["quiz_status"]
+          title?: string
+          tutor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          join_code?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["quiz_status"]
+          title?: string
+          tutor_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      finish_participant: {
+        Args: { _participant_id: string }
+        Returns: undefined
+      }
+      get_quiz_questions: {
+        Args: { _quiz_id: string }
+        Returns: {
+          id: string
+          options: Json
+          order_index: number
+          prompt: string
+          time_limit: number
+          type: Database["public"]["Enums"]["question_type"]
+        }[]
+      }
+      submit_answer: {
+        Args: {
+          _participant_id: string
+          _question_id: string
+          _response: string
+          _time_ms: number
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      question_type: "multiple_choice" | "true_false" | "short_answer"
+      quiz_status: "draft" | "lobby" | "live" | "ended"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +351,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      question_type: ["multiple_choice", "true_false", "short_answer"],
+      quiz_status: ["draft", "lobby", "live", "ended"],
+    },
   },
 } as const

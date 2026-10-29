@@ -201,6 +201,16 @@ export type Database = {
         Args: { _participant_id: string }
         Returns: undefined
       }
+      get_quiz_board: {
+        Args: { _quiz_id: string }
+        Returns: {
+          finished: boolean
+          id: string
+          name: string
+          score: number
+          total_time_ms: number
+        }[]
+      }
       get_quiz_questions: {
         Args: { _quiz_id: string }
         Returns: {

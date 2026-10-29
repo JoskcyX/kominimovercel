@@ -161,9 +161,39 @@ function ClassRoom() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not end"),
   });
 
+  const saveSettings = useMutation({
+    mutationFn: async (patch: { admit_mode?: string; id_label?: string }) => {
+      const { error } = await supabase.from("classes").update(patch).eq("id", classId);
+      if (error) throw error;
+    },
+    onSuccess: () => { inv(); toast.success("Class settings saved"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+  const admitAll = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("class_members").update({ status: "approved" }).eq("class_id", classId).eq("status", "pending");
+      if (error) throw error;
+    },
+    onSuccess: () => { inv(); toast.success("Everyone waiting was let in"); },
+  });
+
+  // Ping the tutor whenever a new student is waiting, wherever they are on this page (including inside the live class).
+  const seenPending = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!members.data) return;
+    const ids = members.data.filter((m) => m.status === "pending");
+    if (seenPending.current) {
+      for (const m of ids) if (!seenPending.current.has(m.id)) toast(`${m.name} wants to join the class`, { description: "Let them in from the join requests." });
+    }
+    seenPending.current = new Set(ids.map((m) => m.id));
+  }, [members.data]);
+
+  const [exporting, setExporting] = useState(false);
+
   if (cls.isLoading) return <div className="p-10 text-muted-foreground">Loading…</div>;
   if (!cls.data) return <div className="p-10">Class not found.</div>;
 
+  const idName = cls.data.id_label === "matric" ? "Matric number" : "Phone number";
   const link = typeof window !== "undefined" ? `${window.location.origin}/class/${cls.data.join_code}` : "";
   const pending = members.data?.filter((m) => m.status === "pending") ?? [];
   const approved = members.data?.filter((m) => m.status === "approved") ?? [];
@@ -179,9 +209,45 @@ function ClassRoom() {
     return "joined";
   };
 
+  const exportAttendance = async () => {
+    if (!cls.data) return;
+    setExporting(true);
+    try {
+      const memberStatus = (m: (typeof approved)[number]) => (isLive(m) ? "Present" : m.left_at ? "Left" : m.last_seen_at ? "Attended" : "Not in live class");
+      const rows = approved.map((m) => ({ name: m.name, identifier: m.phone, status: memberStatus(m), joinedAt: m.joined_at, lastSeenAt: m.last_seen_at, leftAt: m.left_at }));
+      // Expected students who never joined are listed as absent.
+      for (const r of roster.data ?? []) {
+        if (rosterStatus(r.identifier) === "absent") rows.push({ name: "", identifier: r.identifier, status: "Absent", joinedAt: null, lastSeenAt: null, leftAt: null });
+      }
+      const date = cls.data.live_started_at ? new Date(cls.data.live_started_at) : new Date();
+      const blob = await buildAttendanceXlsx({ platform: "Kominimo", classTitle: cls.data.title, subject: cls.data.subject, classCode: cls.data.join_code, classDate: date, idLabel: idName, rows });
+      const safe = cls.data.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "class";
+      downloadBlob(blob, `${safe}-attendance-${date.toISOString().slice(0, 10)}.xlsx`);
+    } catch {
+      toast.error("Could not create the spreadsheet");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const liveNotices = (
+    <>
+      {pending.map((m) => (
+        <div key={m.id} className="flex items-center justify-between gap-2 rounded-xl border-2 border-primary bg-card p-2 shadow-lg">
+          <div className="min-w-0"><p className="truncate text-sm font-bold">{m.name} wants to join</p><p className="truncate text-xs text-muted-foreground">{m.phone}</p></div>
+          <div className="flex shrink-0 gap-1">
+            <Button size="sm" className="h-7 px-2" onClick={() => setStatus.mutate({ id: m.id, status: "approved" })} aria-label={`Let ${m.name} in`}><Check className="size-4" /></Button>
+            <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => setStatus.mutate({ id: m.id, status: "rejected" })} aria-label={`Decline ${m.name}`}><X className="size-4" /></Button>
+          </div>
+        </div>
+      ))}
+      {pending.length > 1 && <Button size="sm" onClick={() => admitAll.mutate()} className="rounded-full font-bold">Let all {pending.length} in</Button>}
+    </>
+  );
+
   return (
     <div className="min-h-screen confetti-bg">
-      {roomUrl && <LiveRoom url={roomUrl} onLeave={() => setRoomUrl(null)} leaveLabel="Close" />}
+      {roomUrl && <LiveRoom url={roomUrl} onLeave={() => setRoomUrl(null)} leaveLabel="Close" overlay={pending.length ? liveNotices : null} />}
       <main className="mx-auto max-w-5xl px-6 py-8 pb-24">
         <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm font-bold text-muted-foreground"><ArrowLeft className="size-4" /> Dashboard</Link>
         <h1 className="mt-3 text-4xl font-bold">{cls.data.title}</h1>

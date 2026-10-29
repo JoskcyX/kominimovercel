@@ -22,6 +22,27 @@
       "when": 1793260943488,
       "tag": "0002_grants_realtime",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793260953510,
+      "tag": "0003_question_progress",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793260963755,
+      "tag": "0004_host_controls_stats",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793260974233,
+      "tag": "0005_courses",
+      "breakpoints": true
     }
   ]
 }

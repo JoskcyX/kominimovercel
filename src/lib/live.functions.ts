@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-async function daily(path: string, init: RequestInit = {}) {
+export async function daily(path: string, init: RequestInit = {}) {
   const key = process.env["DAILY_API_KEY"];
   if (!key) throw new Error("Live video isn't connected yet");
   const res = await fetch(`https://api.daily.co/v1${path}`, {
@@ -56,9 +56,14 @@ export const startLiveClass = createServerFn({ method: "POST" })
       url = room.url as string;
       const { error } = await context.supabase
         .from("classes")
-        .update({ live_room_name: name, live_room_url: url, live_started_at: new Date().toISOString() })
+        .update({ live_room_name: name, live_room_url: url, live_started_at: new Date().toISOString(), session_started_at: new Date().toISOString(), session_ended_at: null, live_empty_since: null })
         .eq("id", cls.id);
       if (error) throw error;
+      // New session: everyone's attendance time starts from zero.
+      await context.supabase
+        .from("class_members")
+        .update({ present_seconds: 0, last_seen_at: null, left_at: null })
+        .eq("class_id", cls.id);
     }
     const { data: prof } = await context.supabase.from("profiles").select("display_name").eq("id", context.userId).maybeSingle();
     return { url: `${url}?t=${await token(name, prof?.display_name || "Tutor", true)}` };
@@ -77,7 +82,7 @@ export const endLiveClass = createServerFn({ method: "POST" })
     if (cls.live_room_name) await daily(`/rooms/${cls.live_room_name}`, { method: "DELETE" });
     await context.supabase
       .from("classes")
-      .update({ live_room_name: null, live_room_url: null, live_started_at: null })
+      .update({ live_room_name: null, live_room_url: null, live_started_at: null, session_ended_at: new Date().toISOString(), live_empty_since: null })
       .eq("id", cls.id);
     return { ok: true };
   });

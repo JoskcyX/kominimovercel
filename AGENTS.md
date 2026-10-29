@@ -8,3 +8,6 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Schema-qualify extension functions in database trigger functions with fixed search paths; this prevents account creation failures.
+- Normalize authentication errors from structured objects and replace empty messages with actionable text; service errors may not be native Error instances.

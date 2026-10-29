@@ -1,0 +1,1 @@
+ALTER TABLE public.classes ADD COLUMN live_room_name text, ADD COLUMN live_room_url text, ADD COLUMN live_started_at timestamptz;

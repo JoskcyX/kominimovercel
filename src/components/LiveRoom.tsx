@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 
 // Starts as a small floating window so the class page stays usable; expand anytime.
 // audioOnly keeps the room connected (tutor's voice) with the video hidden — used during pop quizzes.
-export function LiveRoom({ url, onLeave, leaveLabel = "Leave", startExpanded = false, audioOnly = false }: { url: string; onLeave: () => void; leaveLabel?: string; startExpanded?: boolean; audioOnly?: boolean }) {
+// overlay renders on top of the video (e.g. the tutor's "student wants to join" notices).
+export function LiveRoom({ url, onLeave, leaveLabel = "Leave", startExpanded = false, audioOnly = false, overlay }: { url: string; onLeave: () => void; leaveLabel?: string; startExpanded?: boolean; audioOnly?: boolean; overlay?: React.ReactNode }) {
   const [big, setBig] = useState(startExpanded);
   if (audioOnly) {
     return (
@@ -41,7 +42,10 @@ export function LiveRoom({ url, onLeave, leaveLabel = "Leave", startExpanded = f
           </Button>
         </div>
       </div>
-      <iframe src={url} title="Live class" allow="camera; microphone; fullscreen; display-capture; autoplay" className="w-full flex-1 border-0" />
+      <div className="relative flex-1">
+        <iframe src={url} title="Live class" allow="camera; microphone; fullscreen; display-capture; autoplay" className="size-full border-0" />
+        {overlay && <div className="absolute left-2 top-2 z-10 grid max-h-[80%] w-[min(320px,calc(100%-1rem))] gap-2 overflow-y-auto">{overlay}</div>}
+      </div>
     </div>
   );
 }

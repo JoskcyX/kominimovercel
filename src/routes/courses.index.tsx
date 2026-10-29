@@ -9,13 +9,13 @@ import { formatPrice } from "@/lib/courses";
 export const Route = createFileRoute("/courses/")({
   head: () => ({
     meta: [
-      { title: "Courses — EDxKa" },
+      { title: "Courses — Kominimo" },
       {
         name: "description",
-        content: "Browse video and written courses published by EDxKa tutors, free and paid.",
+        content: "Browse video and written courses published by Kominimo tutors, free and paid.",
       },
-      { property: "og:title", content: "Courses — EDxKa" },
-      { property: "og:description", content: "Video and written courses from EDxKa tutors." },
+      { property: "og:title", content: "Courses — Kominimo" },
+      { property: "og:description", content: "Video and written courses from Kominimo tutors." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -41,7 +41,7 @@ function CourseCatalog() {
     <div className="min-h-screen confetti-bg">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <Link to="/" className="font-display text-2xl font-bold">
-          ED<span className="text-primary">xKa</span>
+          Komi<span className="text-primary">nimo</span>
         </Link>
         <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">
           <Link to="/auth">Sign in</Link>
@@ -51,7 +51,7 @@ function CourseCatalog() {
       <main className="mx-auto max-w-6xl px-6 pb-24">
         <h1 className="font-display text-4xl font-bold sm:text-5xl">Courses</h1>
         <p className="mt-3 max-w-xl text-lg text-muted-foreground">
-          Learn at your own pace with video and written lessons from EDxKa tutors.
+          Learn at your own pace with video and written lessons from Kominimo tutors.
         </p>
 
         {courses.isLoading && <p className="mt-10 text-muted-foreground">Loading courses…</p>}

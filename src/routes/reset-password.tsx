@@ -12,13 +12,13 @@ export const Route = createFileRoute("/reset-password")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Set a new password — EDxKa" },
+      { title: "Set a new password — Kominimo" },
       {
         name: "description",
-        content: "Choose a new password for your EDxKa tutor account using your secure reset link.",
+        content: "Choose a new password for your Kominimo tutor account using your secure reset link.",
       },
-      { property: "og:title", content: "Set a new password — EDxKa" },
-      { property: "og:description", content: "Choose a new password for your EDxKa tutor account." },
+      { property: "og:title", content: "Set a new password — Kominimo" },
+      { property: "og:description", content: "Choose a new password for your Kominimo tutor account." },
     ],
   }),
   component: ResetPasswordPage,
@@ -92,7 +92,7 @@ function ResetPasswordPage() {
     <div className="grid min-h-screen place-items-center confetti-bg px-6 py-12">
       <div className="pop-in w-full max-w-md surface-card p-8">
         <p className="font-display text-2xl font-bold">
-          ED<span className="text-primary">xKa</span>
+          Komi<span className="text-primary">nimo</span>
         </p>
         <h1 className="mt-4 text-3xl font-bold">Set a new password</h1>
 

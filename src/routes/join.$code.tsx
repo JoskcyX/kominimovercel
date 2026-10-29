@@ -14,9 +14,9 @@ export const Route = createFileRoute("/join/$code")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Join the live quiz — EDxKa" },
+      { title: "Join the live quiz — Kominimo" },
       { name: "description", content: "Enter your name, wait in the lobby and play the live quiz." },
-      { property: "og:title", content: "Join the live quiz — EDxKa" },
+      { property: "og:title", content: "Join the live quiz — Kominimo" },
       { property: "og:description", content: "Enter your name and play the live quiz." },
     ],
   }),
@@ -120,21 +120,22 @@ function JoinPage() {
     const { data: open } = await supabase.rpc("quiz_join_open", { _quiz_id: quiz.id });
     if (open === false) {
       setJoining(false);
-      toast.error("This quiz isn't open right now — check the time window.");
+      toast.error("This quiz isn't open right now — ask your tutor to open the lobby.");
       return;
     }
-    const { data, error } = await supabase
-      .from("participants")
-      .insert({ quiz_id: quiz.id, name: parsed.data.name, phone: parsed.data.phone })
-      .select("id")
-      .single();
+    // Students have no account and can't read the participants list, so joining goes through a safe server step.
+    const { data, error } = await supabase.rpc("join_quiz", {
+      _quiz_id: quiz.id,
+      _name: parsed.data.name,
+      _phone: parsed.data.phone,
+    });
     setJoining(false);
     if (error || !data) {
       toast.error("Could not join — the lobby may not be open yet.");
       return;
     }
-    localStorage.setItem(storageKey, data.id);
-    setParticipantId(data.id);
+    localStorage.setItem(storageKey, data as string);
+    setParticipantId(data as string);
   };
 
   if (kicked) {

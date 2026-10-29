@@ -217,9 +217,11 @@ export type Database = {
       }
       classes: {
         Row: {
+          admit_mode: string
           created_at: string
           description: string
           id: string
+          id_label: string
           join_code: string
           live_room_name: string | null
           live_room_url: string | null
@@ -231,9 +233,11 @@ export type Database = {
           tutor_id: string
         }
         Insert: {
+          admit_mode?: string
           created_at?: string
           description?: string
           id?: string
+          id_label?: string
           join_code: string
           live_room_name?: string | null
           live_room_url?: string | null
@@ -245,9 +249,11 @@ export type Database = {
           tutor_id: string
         }
         Update: {
+          admit_mode?: string
           created_at?: string
           description?: string
           id?: string
+          id_label?: string
           join_code?: string
           live_room_name?: string | null
           live_room_url?: string | null
@@ -657,6 +663,12 @@ export type Database = {
           title: string
         }[]
       }
+      get_class_join_settings: {
+        Args: { _code: string }
+        Returns: {
+          id_label: string
+        }[]
+      }
       get_class_membership: {
         Args: { _member_id: string }
         Returns: {
@@ -717,6 +729,10 @@ export type Database = {
           time_limit: number
           type: Database["public"]["Enums"]["question_type"]
         }[]
+      }
+      join_quiz: {
+        Args: { _name: string; _phone: string; _quiz_id: string }
+        Returns: string
       }
       live_heartbeat: {
         Args: { _member_id: string; _present: boolean }

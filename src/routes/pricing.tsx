@@ -7,16 +7,16 @@ import { FREE_TIER, PRO_TIER, formatMoney } from "@/lib/plans";
 export const Route = createFileRoute("/pricing")({
   head: () => ({
     meta: [
-      { title: "Pricing — EDxKa" },
+      { title: "Pricing — Kominimo" },
       {
         name: "description",
         content:
           "Run quizzes free or upgrade to Pro for unlimited quizzes, CSV analytics and a referral income stream.",
       },
-      { property: "og:title", content: "Pricing — EDxKa" },
+      { property: "og:title", content: "Pricing — Kominimo" },
       {
         property: "og:description",
-        content: "Free and Pro plans for EDxKa tutors, plus a 20% referral program.",
+        content: "Free and Pro plans for Kominimo tutors, plus a 20% referral program.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -38,7 +38,7 @@ const PRO_FEATURES = [
   "Unlimited quizzes & questions",
   "Unlimited published courses",
   "CSV export of analytics",
-  "Remove EDxKa branding",
+  "Remove Kominimo branding",
   "White-label (your own logo & accent)",
   "AI question generator",
   "20% referral income — earn from every tutor you bring on board",
@@ -49,7 +49,7 @@ function PricingPage() {
     <div className="min-h-screen confetti-bg">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
         <Link to="/" className="font-display text-2xl font-bold">
-          ED<span className="text-primary">xKa</span>
+          Komi<span className="text-primary">nimo</span>
         </Link>
         <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">
           <Link to="/auth">Sign in</Link>

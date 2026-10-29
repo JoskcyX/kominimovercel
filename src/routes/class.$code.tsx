@@ -17,9 +17,9 @@ import { PdfPage, isPdf } from "@/components/PdfPage";
 export const Route = createFileRoute("/class/$code")({
   head: () => ({
     meta: [
-      { title: "Join your class — EDxKa" },
+      { title: "Join your class — Kominimo" },
       { name: "description", content: "Request to join your tutor's class, access resources and take quizzes." },
-      { property: "og:title", content: "Join your class — EDxKa" },
+      { property: "og:title", content: "Join your class — Kominimo" },
       { property: "og:description", content: "Request to join, get approved, and learn with your class." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -28,9 +28,13 @@ export const Route = createFileRoute("/class/$code")({
   component: ClassPage,
 });
 
-const schema = z.object({
+const phoneSchema = z.object({
   name: z.string().trim().min(2, "Enter your full name").max(60),
   phone: z.string().trim().min(7, "Enter a valid phone number").max(20).regex(/^[0-9+\-\s()]+$/, "Phone can only contain numbers"),
+});
+const matricSchema = z.object({
+  name: z.string().trim().min(2, "Enter your full name").max(60),
+  phone: z.string().trim().min(3, "Enter your matric number").max(40).regex(/^[A-Za-z0-9/\-_. ]+$/, "Matric number has invalid characters"),
 });
 
 type ClassInfo = { id: string; title: string; subject: string; description: string };
@@ -50,11 +54,15 @@ function ClassPage() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [quizzes, setQuizzes] = useState<ClassQuiz[]>([]);
 
+  const [idLabel, setIdLabel] = useState<"phone" | "matric">("phone");
   useEffect(() => {
     setMemberId(localStorage.getItem(key));
     supabase.rpc("get_class_by_code", { _code: code.toUpperCase() }).then(({ data }) => {
       setInfo((data?.[0] as ClassInfo) ?? null);
       setLoading(false);
+    });
+    supabase.rpc("get_class_join_settings", { _code: code.toUpperCase() }).then(({ data }) => {
+      if (data?.[0]?.id_label === "matric") setIdLabel("matric");
     });
   }, [code, key]);
 
@@ -111,15 +119,15 @@ function ClassPage() {
   const join = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!info) return;
-    const p = schema.safeParse({ name, phone });
+    const p = (idLabel === "matric" ? matricSchema : phoneSchema).safeParse({ name, phone });
     if (!p.success) { toast.error(p.error.issues[0]?.message ?? "Check your details"); return; }
     setBusy(true);
-    const { data, error } = await supabase.rpc("request_class_join", { _class_id: info.id, _name: p.data.name, _phone: p.data.phone });
+    const { data, error } = await supabase.rpc("request_class_join", { _class_id: info.id, _name: p.data.name, _phone: idLabel === "matric" ? p.data.phone.toUpperCase() : p.data.phone });
     setBusy(false);
     if (error || !data) { toast.error("Could not send your request"); return; }
     localStorage.setItem(key, data as string);
     setMemberId(data as string);
-    setStatus("pending");
+    setStatus("pending"); // refreshes right away; auto-admitted students go straight in
   };
 
   if (loading) return <Shell><p className="text-muted-foreground">Loading class…</p></Shell>;
@@ -138,7 +146,7 @@ function ClassPage() {
         <form onSubmit={join} className="surface-card mt-8 grid gap-3 p-6">
           <p className="font-bold">Request to join this class</p>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className="h-12 rounded-xl border-2" />
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number" className="h-12 rounded-xl border-2" />
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={idLabel === "matric" ? "Matric number" : "Phone number"} className="h-12 rounded-xl border-2" />
           <Button disabled={busy} className="chunky h-12 rounded-xl font-bold">Send request</Button>
         </form>
       )}
@@ -295,7 +303,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen confetti-bg">
       <header className="mx-auto flex max-w-3xl items-center gap-2 px-6 py-6">
-        <Link to="/" className="font-display text-2xl font-bold">ED<span className="text-primary">xKa</span></Link>
+        <Link to="/" className="font-display text-2xl font-bold">Komi<span className="text-primary">nimo</span></Link>
         <BookOpen className="size-5 text-secondary" />
       </header>
       <main className="mx-auto max-w-3xl px-6 pb-24">{children}</main>

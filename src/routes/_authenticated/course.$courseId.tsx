@@ -13,10 +13,10 @@ import { formatPrice, type Lesson, type LessonKind } from "@/lib/courses";
 export const Route = createFileRoute("/_authenticated/course/$courseId")({
   head: () => ({
     meta: [
-      { title: "Edit course — EDxKa" },
+      { title: "Edit course — Kominimo" },
       { name: "description", content: "Edit course details, pricing and lessons." },
-      { property: "og:title", content: "Edit course — EDxKa" },
-      { property: "og:description", content: "Edit course details, pricing and lessons on EDxKa." },
+      { property: "og:title", content: "Edit course — Kominimo" },
+      { property: "og:description", content: "Edit course details, pricing and lessons on Kominimo." },
     ],
   }),
   component: CourseEditor,

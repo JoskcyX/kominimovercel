@@ -11,10 +11,10 @@ import { embedUrl, formatPrice, type Lesson } from "@/lib/courses";
 export const Route = createFileRoute("/courses/$slug")({
   head: () => ({
     meta: [
-      { title: "Course — EDxKa" },
-      { name: "description", content: "Watch video lessons and read written material from an EDxKa tutor." },
-      { property: "og:title", content: "Course — EDxKa" },
-      { property: "og:description", content: "Video and written lessons on EDxKa." },
+      { title: "Course — Kominimo" },
+      { name: "description", content: "Watch video lessons and read written material from an Kominimo tutor." },
+      { property: "og:title", content: "Course — Kominimo" },
+      { property: "og:description", content: "Video and written lessons on Kominimo." },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -121,7 +121,7 @@ function CoursePage() {
     <div className="min-h-screen confetti-bg">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
         <Link to="/" className="font-display text-2xl font-bold">
-          ED<span className="text-primary">xKa</span>
+          Komi<span className="text-primary">nimo</span>
         </Link>
         <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">
           <Link to="/courses">All courses</Link>

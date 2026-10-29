@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { buildAttendanceXlsx, downloadBlob, type AttendanceRow } from "@/lib/attendance";
 import { toast } from "sonner";
-import { ArrowLeft, Check, Copy, Eye, Plus, Radio, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, Copy, Download, Eye, Plus, Radio, Trash2, X } from "lucide-react";
 import { StudentPreview } from "@/components/StudentPreview";
 import { ClassMaterials } from "@/components/ClassMaterials";
 
@@ -17,10 +18,10 @@ import { LiveRoom } from "@/components/LiveRoom";
 export const Route = createFileRoute("/_authenticated/manage-class/$classId")({
   head: () => ({
     meta: [
-      { title: "Class control room — EDxKa" },
+      { title: "Class control room — Kominimo" },
       { name: "description", content: "Approve students, share resources and push quizzes to your class." },
-      { property: "og:title", content: "Class control room — EDxKa" },
-      { property: "og:description", content: "Manage your EDxKa class." },
+      { property: "og:title", content: "Class control room — Kominimo" },
+      { property: "og:description", content: "Manage your Kominimo class." },
     ],
   }),
   component: ClassRoom,
@@ -161,9 +162,39 @@ function ClassRoom() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not end"),
   });
 
+  const saveSettings = useMutation({
+    mutationFn: async (patch: { admit_mode?: string; id_label?: string }) => {
+      const { error } = await supabase.from("classes").update(patch).eq("id", classId);
+      if (error) throw error;
+    },
+    onSuccess: () => { inv(); toast.success("Class settings saved"); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+  const admitAll = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("class_members").update({ status: "approved" }).eq("class_id", classId).eq("status", "pending");
+      if (error) throw error;
+    },
+    onSuccess: () => { inv(); toast.success("Everyone waiting was let in"); },
+  });
+
+  // Ping the tutor whenever a new student is waiting, wherever they are on this page (including inside the live class).
+  const seenPending = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!members.data) return;
+    const ids = members.data.filter((m) => m.status === "pending");
+    if (seenPending.current) {
+      for (const m of ids) if (!seenPending.current.has(m.id)) toast(`${m.name} wants to join the class`, { description: "Let them in from the join requests." });
+    }
+    seenPending.current = new Set(ids.map((m) => m.id));
+  }, [members.data]);
+
+  const [exporting, setExporting] = useState(false);
+
   if (cls.isLoading) return <div className="p-10 text-muted-foreground">Loading…</div>;
   if (!cls.data) return <div className="p-10">Class not found.</div>;
 
+  const idName = cls.data.id_label === "matric" ? "Matric number" : "Phone number";
   const link = typeof window !== "undefined" ? `${window.location.origin}/class/${cls.data.join_code}` : "";
   const pending = members.data?.filter((m) => m.status === "pending") ?? [];
   const approved = members.data?.filter((m) => m.status === "approved") ?? [];
@@ -179,9 +210,45 @@ function ClassRoom() {
     return "joined";
   };
 
+  const exportAttendance = async () => {
+    if (!cls.data) return;
+    setExporting(true);
+    try {
+      const memberStatus = (m: (typeof approved)[number]) => (isLive(m) ? "Present" : m.left_at ? "Left" : m.last_seen_at ? "Attended" : "Not in live class");
+      const rows: AttendanceRow[] = approved.map((m) => ({ name: m.name, identifier: m.phone, status: memberStatus(m), joinedAt: m.joined_at, lastSeenAt: m.last_seen_at, leftAt: m.left_at }));
+      // Expected students who never joined are listed as absent.
+      for (const r of roster.data ?? []) {
+        if (rosterStatus(r.identifier) === "absent") rows.push({ name: "", identifier: r.identifier, status: "Absent", joinedAt: null, lastSeenAt: null, leftAt: null });
+      }
+      const date = cls.data.live_started_at ? new Date(cls.data.live_started_at) : new Date();
+      const blob = await buildAttendanceXlsx({ platform: "Kominimo", classTitle: cls.data.title, subject: cls.data.subject, classCode: cls.data.join_code, classDate: date, idLabel: idName, rows });
+      const safe = cls.data.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "class";
+      downloadBlob(blob, `${safe}-attendance-${date.toISOString().slice(0, 10)}.xlsx`);
+    } catch {
+      toast.error("Could not create the spreadsheet");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const liveNotices = (
+    <>
+      {pending.map((m) => (
+        <div key={m.id} className="flex items-center justify-between gap-2 rounded-xl border-2 border-primary bg-card p-2 shadow-lg">
+          <div className="min-w-0"><p className="truncate text-sm font-bold">{m.name} wants to join</p><p className="truncate text-xs text-muted-foreground">{m.phone}</p></div>
+          <div className="flex shrink-0 gap-1">
+            <Button size="sm" className="h-7 px-2" onClick={() => setStatus.mutate({ id: m.id, status: "approved" })} aria-label={`Let ${m.name} in`}><Check className="size-4" /></Button>
+            <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => setStatus.mutate({ id: m.id, status: "rejected" })} aria-label={`Decline ${m.name}`}><X className="size-4" /></Button>
+          </div>
+        </div>
+      ))}
+      {pending.length > 1 && <Button size="sm" onClick={() => admitAll.mutate()} className="rounded-full font-bold">Let all {pending.length} in</Button>}
+    </>
+  );
+
   return (
     <div className="min-h-screen confetti-bg">
-      {roomUrl && <LiveRoom url={roomUrl} onLeave={() => setRoomUrl(null)} leaveLabel="Close" />}
+      {roomUrl && <LiveRoom url={roomUrl} onLeave={() => setRoomUrl(null)} leaveLabel="Close" overlay={pending.length ? liveNotices : null} />}
       <main className="mx-auto max-w-5xl px-6 py-8 pb-24">
         <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm font-bold text-muted-foreground"><ArrowLeft className="size-4" /> Dashboard</Link>
         <h1 className="mt-3 text-4xl font-bold">{cls.data.title}</h1>
@@ -202,9 +269,30 @@ function ClassRoom() {
           </div>
         </div>
 
+        <div className="surface-card mt-4 grid gap-4 p-4 sm:grid-cols-2">
+          <label className="grid gap-1 text-sm font-bold">
+            Letting students in
+            <select value={cls.data.admit_mode} onChange={(e) => saveSettings.mutate({ admit_mode: e.target.value })} className="h-11 rounded-xl border-2 border-input bg-background px-3 font-normal">
+              <option value="manual">I approve each student</option>
+              <option value="roster">Let in students on my expected list automatically</option>
+              <option value="auto">Let everyone in automatically</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-sm font-bold">
+            Students join with
+            <select value={cls.data.id_label} onChange={(e) => saveSettings.mutate({ id_label: e.target.value })} className="h-11 rounded-xl border-2 border-input bg-background px-3 font-normal">
+              <option value="phone">Name and phone number</option>
+              <option value="matric">Name and matric number</option>
+            </select>
+          </label>
+        </div>
+
         <div className="mt-8 grid gap-8 lg:grid-cols-2">
           <section>
-            <h2 className="text-2xl font-bold">Join requests ({pending.length})</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-2xl font-bold">Join requests ({pending.length})</h2>
+              {pending.length > 1 && <Button size="sm" onClick={() => admitAll.mutate()} className="rounded-full font-bold">Let all in</Button>}
+            </div>
             <div className="mt-3 grid gap-2">
               {pending.length === 0 && <p className="text-sm text-muted-foreground">No pending requests.</p>}
               {pending.map((m) => (
@@ -217,7 +305,10 @@ function ClassRoom() {
                 </div>
               ))}
             </div>
-            <h2 className="mt-8 text-2xl font-bold">Roster ({approved.length}) · {approved.filter(isLive).length} in class now</h2>
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-2xl font-bold">Roster ({approved.length}) · {approved.filter(isLive).length} in class now</h2>
+              <Button size="sm" variant="outline" disabled={exporting} onClick={exportAttendance} className="rounded-full border-2 font-bold"><Download className="size-4" /> {exporting ? "Preparing…" : "Download attendance (Excel)"}</Button>
+            </div>
             <div className="mt-3 grid gap-2">
               {approved.map((m) => {
                 const on = isLive(m);

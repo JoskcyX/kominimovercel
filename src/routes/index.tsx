@@ -27,13 +27,13 @@ import { Input } from "@/components/ui/input";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "EDxKa — Live Quizzes and Courses for Modern Learning" },
+      { title: "Kominimo — Live Quizzes and Courses for Modern Learning" },
       {
         name: "description",
         content:
-          "Create live quizzes, publish video or written courses, and give students one engaging place to learn with EDxKa.",
+          "Create live quizzes, publish video or written courses, and give students one engaging place to learn with Kominimo.",
       },
-      { property: "og:title", content: "EDxKa — Live Quizzes and Courses for Modern Learning" },
+      { property: "og:title", content: "Kominimo — Live Quizzes and Courses for Modern Learning" },
       {
         property: "og:description",
         content:
@@ -67,8 +67,8 @@ function Landing() {
   return (
     <div className="min-h-screen overflow-hidden bg-background">
       <header className="relative z-30 mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
-        <Link to="/" className="font-display text-3xl font-bold" aria-label="EDxKa home">
-          ED<span className="text-primary">xKa</span>
+        <Link to="/" className="font-display text-3xl font-bold" aria-label="Kominimo home">
+          Komi<span className="text-primary">nimo</span>
         </Link>
         <nav className="hidden items-center gap-7 text-sm font-bold md:flex" aria-label="Main navigation">
           <a href="#quizzes" className="transition-colors hover:text-primary">Live quizzes</a>
@@ -164,7 +164,7 @@ function Landing() {
             <div className="order-1 lg:order-2">
               <span className="text-sm font-extrabold uppercase text-secondary">For live classes</span>
               <h2 className="mt-3 max-w-xl text-4xl font-bold sm:text-5xl">Turn every lesson into a shared challenge.</h2>
-              <p className="mt-5 max-w-xl text-lg leading-8 text-muted-foreground">Tutors paste in a full question set, share one link, and control the session. Students answer together while EDxKa handles timing, marking, and rankings.</p>
+              <p className="mt-5 max-w-xl text-lg leading-8 text-muted-foreground">Tutors paste in a full question set, share one link, and control the session. Students answer together while Kominimo handles timing, marking, and rankings.</p>
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
                 {[{ icon: MousePointer2, label: "Paste questions" }, { icon: Play, label: "Start together" }, { icon: Trophy, label: "Rank instantly" }].map((item) => (
                   <div key={item.label} className="flex items-center gap-3 border-t-2 border-border pt-4 font-bold"><item.icon className="size-5 text-primary" />{item.label}</div>
@@ -223,7 +223,7 @@ function Landing() {
 
       <footer className="border-t-2 border-border px-5 py-8 sm:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <span className="font-display text-xl font-bold text-foreground">ED<span className="text-primary">xKa</span></span>
+          <span className="font-display text-xl font-bold text-foreground">Komi<span className="text-primary">nimo</span></span>
           <p>Live learning and self-paced courses, together.</p>
           <div className="flex gap-5 font-bold"><Link to="/courses">Courses</Link><Link to="/pricing">Pricing</Link><Link to="/auth">Sign in</Link></div>
         </div>

@@ -11,11 +11,11 @@ import { usePlan } from "@/hooks/usePlan";
 export const Route = createFileRoute("/_authenticated/upgrade")({
   head: () => ({
     meta: [
-      { title: "Upgrade to Pro — EDxKa" },
+      { title: "Upgrade to Pro — Kominimo" },
       {
         name: "description",
         content:
-          "Upgrade to EDxKa Pro for unlimited quizzes, CSV analytics and a 20% referral income stream.",
+          "Upgrade to Kominimo Pro for unlimited quizzes, CSV analytics and a 20% referral income stream.",
       },
     ],
   }),
@@ -60,7 +60,7 @@ function UpgradePage() {
       <div className="min-h-screen confetti-bg">
         <header className="mx-auto flex max-w-4xl items-center justify-between px-6 py-6">
           <Link to="/dashboard" className="font-display text-2xl font-bold">
-            ED<span className="text-primary">xKa</span>
+            Komi<span className="text-primary">nimo</span>
           </Link>
           <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">
             <Link to="/dashboard">Back to dashboard</Link>
@@ -113,7 +113,7 @@ function UpgradePage() {
     <div className="min-h-screen confetti-bg">
       <header className="mx-auto flex max-w-4xl items-center justify-between px-6 py-6">
         <Link to="/dashboard" className="font-display text-2xl font-bold">
-          ED<span className="text-primary">xKa</span>
+          Komi<span className="text-primary">nimo</span>
         </Link>
         <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">
           <Link to="/dashboard">Back</Link>
@@ -142,7 +142,7 @@ function UpgradePage() {
                   "Unlimited quizzes & questions",
                   "Unlimited published courses",
                   "CSV export of all analytics",
-                  "Remove EDxKa branding",
+                  "Remove Kominimo branding",
                   "White-label your panel",
                   "AI question generator",
                 ].map((f) => (

@@ -12,10 +12,10 @@ import { formatPrice, slugify } from "@/lib/courses";
 export const Route = createFileRoute("/_authenticated/my-courses")({
   head: () => ({
     meta: [
-      { title: "My courses — EDxKa" },
+      { title: "My courses — Kominimo" },
       { name: "description", content: "Create and publish video or written courses for your students." },
-      { property: "og:title", content: "My courses — EDxKa" },
-      { property: "og:description", content: "Create and publish courses on EDxKa." },
+      { property: "og:title", content: "My courses — Kominimo" },
+      { property: "og:description", content: "Create and publish courses on Kominimo." },
     ],
   }),
   component: TutorCourses,

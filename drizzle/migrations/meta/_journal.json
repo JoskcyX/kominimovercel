@@ -92,6 +92,13 @@
       "when": 1793261058539,
       "tag": "0012_class_materials",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793261720673,
+      "tag": "0013_join_fixes_class_settings",
+      "breakpoints": true
     }
   ]
 }

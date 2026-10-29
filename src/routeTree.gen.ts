@@ -24,6 +24,7 @@ import { Route as JoinCodeRouteImport } from './routes/join.$code'
 import { Route as AuthenticatedCourseCourseIdRouteImport } from './routes/_authenticated/course.$courseId'
 import { Route as AuthenticatedManageClassClassIdRouteImport } from './routes/_authenticated/manage-class.$classId'
 import { Route as AuthenticatedQuizQuizIdRouteImport } from './routes/_authenticated/quiz.$quizId'
+import { Route as ApiPublicJobsCloseIdleClassesRouteImport } from './routes/api/public/jobs/close-idle-classes'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -101,6 +102,12 @@ const AuthenticatedQuizQuizIdRoute = AuthenticatedQuizQuizIdRouteImport.update({
   path: '/quiz/$quizId',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicJobsCloseIdleClassesRoute =
+  ApiPublicJobsCloseIdleClassesRouteImport.update({
+    id: '/api/public/jobs/close-idle-classes',
+    path: '/api/public/jobs/close-idle-classes',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/course/$courseId': typeof AuthenticatedCourseCourseIdRoute
   '/manage-class/$classId': typeof AuthenticatedManageClassClassIdRoute
   '/quiz/$quizId': typeof AuthenticatedQuizQuizIdRoute
+  '/api/public/jobs/close-idle-classes': typeof ApiPublicJobsCloseIdleClassesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -133,6 +141,7 @@ export interface FileRoutesByTo {
   '/course/$courseId': typeof AuthenticatedCourseCourseIdRoute
   '/manage-class/$classId': typeof AuthenticatedManageClassClassIdRoute
   '/quiz/$quizId': typeof AuthenticatedQuizQuizIdRoute
+  '/api/public/jobs/close-idle-classes': typeof ApiPublicJobsCloseIdleClassesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -151,6 +160,7 @@ export interface FileRoutesById {
   '/_authenticated/course/$courseId': typeof AuthenticatedCourseCourseIdRoute
   '/_authenticated/manage-class/$classId': typeof AuthenticatedManageClassClassIdRoute
   '/_authenticated/quiz/$quizId': typeof AuthenticatedQuizQuizIdRoute
+  '/api/public/jobs/close-idle-classes': typeof ApiPublicJobsCloseIdleClassesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/course/$courseId'
     | '/manage-class/$classId'
     | '/quiz/$quizId'
+    | '/api/public/jobs/close-idle-classes'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/course/$courseId'
     | '/manage-class/$classId'
     | '/quiz/$quizId'
+    | '/api/public/jobs/close-idle-classes'
   id:
     | '__root__'
     | '/'
@@ -202,6 +214,7 @@ export interface FileRouteTypes {
     | '/_authenticated/course/$courseId'
     | '/_authenticated/manage-class/$classId'
     | '/_authenticated/quiz/$quizId'
+    | '/api/public/jobs/close-idle-classes'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -214,6 +227,7 @@ export interface RootRouteChildren {
   CoursesSlugRoute: typeof CoursesSlugRoute
   JoinCodeRoute: typeof JoinCodeRoute
   CoursesIndexRoute: typeof CoursesIndexRoute
+  ApiPublicJobsCloseIdleClassesRoute: typeof ApiPublicJobsCloseIdleClassesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -323,6 +337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedQuizQuizIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/jobs/close-idle-classes': {
+      id: '/api/public/jobs/close-idle-classes'
+      path: '/api/public/jobs/close-idle-classes'
+      fullPath: '/api/public/jobs/close-idle-classes'
+      preLoaderRoute: typeof ApiPublicJobsCloseIdleClassesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -357,6 +378,7 @@ const rootRouteChildren: RootRouteChildren = {
   CoursesSlugRoute: CoursesSlugRoute,
   JoinCodeRoute: JoinCodeRoute,
   CoursesIndexRoute: CoursesIndexRoute,
+  ApiPublicJobsCloseIdleClassesRoute: ApiPublicJobsCloseIdleClassesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

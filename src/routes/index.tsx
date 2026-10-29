@@ -68,7 +68,7 @@ function Landing() {
     <div className="min-h-screen overflow-hidden bg-background">
       <header className="relative z-30 mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:h-20 sm:px-8">
         <Link to="/" className="font-display text-2xl font-bold sm:text-3xl" aria-label="Kominimo home">
-          Komi<span className="text-primary">nimo</span>
+          Kọ́mì<span className="text-primary">nímọ̀</span>
         </Link>
         <nav className="hidden items-center gap-7 text-sm font-bold md:flex" aria-label="Main navigation">
           <a href="#quizzes" className="transition-colors hover:text-primary">Live quizzes</a>
@@ -223,7 +223,7 @@ function Landing() {
 
       <footer className="border-t-2 border-border px-5 py-8 sm:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <span className="font-display text-xl font-bold text-foreground">Komi<span className="text-primary">nimo</span></span>
+          <span className="font-display text-xl font-bold text-foreground">Kọ́mì<span className="text-primary">nímọ̀</span></span>
           <p>Live learning and self-paced courses, together.</p>
           <div className="flex flex-wrap gap-5 font-bold"><Link to="/courses">Courses</Link><Link to="/pricing">Pricing</Link><Link to="/auth">Sign in</Link></div>
         </div>

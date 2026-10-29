@@ -194,7 +194,7 @@ function AuthPage() {
     <div className="grid min-h-screen place-items-center confetti-bg px-6 py-12">
       <div className="pop-in w-full max-w-md surface-card p-8">
         <p className="font-display text-2xl font-bold">
-          Komi<span className="text-primary">nimo</span>
+          Kọ́mì<span className="text-primary">nímọ̀</span>
         </p>
         <h1 className="mt-4 text-3xl font-bold">
           {mode === "signin"

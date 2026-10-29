@@ -68,6 +68,7 @@ export type Database = {
           left_at: string | null
           name: string
           phone: string
+          present_seconds: number
           status: Database["public"]["Enums"]["class_member_status"]
         }
         Insert: {
@@ -78,6 +79,7 @@ export type Database = {
           left_at?: string | null
           name: string
           phone?: string
+          present_seconds?: number
           status?: Database["public"]["Enums"]["class_member_status"]
         }
         Update: {
@@ -88,6 +90,7 @@ export type Database = {
           left_at?: string | null
           name?: string
           phone?: string
+          present_seconds?: number
           status?: Database["public"]["Enums"]["class_member_status"]
         }
         Relationships: [
@@ -218,48 +221,60 @@ export type Database = {
       classes: {
         Row: {
           admit_mode: string
+          attendance_threshold: number
           created_at: string
           description: string
           id: string
           id_label: string
           join_code: string
+          live_empty_since: string | null
           live_room_name: string | null
           live_room_url: string | null
           live_started_at: string | null
           presenting_page: number
           presenting_resource_id: string | null
+          session_ended_at: string | null
+          session_started_at: string | null
           subject: string
           title: string
           tutor_id: string
         }
         Insert: {
           admit_mode?: string
+          attendance_threshold?: number
           created_at?: string
           description?: string
           id?: string
           id_label?: string
           join_code: string
+          live_empty_since?: string | null
           live_room_name?: string | null
           live_room_url?: string | null
           live_started_at?: string | null
           presenting_page?: number
           presenting_resource_id?: string | null
+          session_ended_at?: string | null
+          session_started_at?: string | null
           subject?: string
           title?: string
           tutor_id: string
         }
         Update: {
           admit_mode?: string
+          attendance_threshold?: number
           created_at?: string
           description?: string
           id?: string
           id_label?: string
           join_code?: string
+          live_empty_since?: string | null
           live_room_name?: string | null
           live_room_url?: string | null
           live_started_at?: string | null
           presenting_page?: number
           presenting_resource_id?: string | null
+          session_ended_at?: string | null
+          session_started_at?: string | null
           subject?: string
           title?: string
           tutor_id?: string

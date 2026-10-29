@@ -17,9 +17,9 @@ import { PdfPage, isPdf } from "@/components/PdfPage";
 export const Route = createFileRoute("/class/$code")({
   head: () => ({
     meta: [
-      { title: "Join your class — EDxKa" },
+      { title: "Join your class — Kominimo" },
       { name: "description", content: "Request to join your tutor's class, access resources and take quizzes." },
-      { property: "og:title", content: "Join your class — EDxKa" },
+      { property: "og:title", content: "Join your class — Kominimo" },
       { property: "og:description", content: "Request to join, get approved, and learn with your class." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -295,7 +295,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen confetti-bg">
       <header className="mx-auto flex max-w-3xl items-center gap-2 px-6 py-6">
-        <Link to="/" className="font-display text-2xl font-bold">ED<span className="text-primary">xKa</span></Link>
+        <Link to="/" className="font-display text-2xl font-bold">Komi<span className="text-primary">nimo</span></Link>
         <BookOpen className="size-5 text-secondary" />
       </header>
       <main className="mx-auto max-w-3xl px-6 pb-24">{children}</main>

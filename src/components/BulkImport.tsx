@@ -60,7 +60,7 @@ export function BulkImport({ quizId, startIndex }: { quizId: string; startIndex:
         <div>
           <h2 className="text-2xl font-bold">Paste your whole question list</h2>
           <p className="text-sm text-muted-foreground">
-            Drop in a numbered list with lettered options and an “Answer:” line. EDxKa splits,
+            Drop in a numbered list with lettered options and an “Answer:” line. Kominimo splits,
             sorts and grades them for you — multiple choice, true/false and typed answers.
           </p>
         </div>

@@ -80,7 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "EDxKa — Live Classroom Quizzes Your Students Race Through" },
+      { title: "Kominimo — Live Classroom Quizzes Your Students Race Through" },
       {
         name: "description",
         content:
@@ -88,8 +88,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:title", content: "EDxKa — Live Classroom Quizzes Your Students Race Through" },
-      { name: "twitter:title", content: "EDxKa — Live Classroom Quizzes Your Students Race Through" },
+      { property: "og:title", content: "Kominimo — Live Classroom Quizzes Your Students Race Through" },
+      { name: "twitter:title", content: "Kominimo — Live Classroom Quizzes Your Students Race Through" },
       { property: "og:description", content: "Tutors build a quiz, share one link, and hit start. Students join a live lobby, answer against the clock, and land on a speed-and-accuracy leaderboard." },
       { name: "twitter:description", content: "Tutors build a quiz, share one link, and hit start. Students join a live lobby, answer against the clock, and land on a speed-and-accuracy leaderboard." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/01aac06d-cc85-4b52-8c5f-f1c30a91671c/id-preview-dcab75af--c699841d-e2b0-4a64-98b2-d886fd3461f5.lovable.app-1785549296859.png" },

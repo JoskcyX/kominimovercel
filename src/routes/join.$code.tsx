@@ -14,9 +14,9 @@ export const Route = createFileRoute("/join/$code")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Join the live quiz — EDxKa" },
+      { title: "Join the live quiz — Kominimo" },
       { name: "description", content: "Enter your name, wait in the lobby and play the live quiz." },
-      { property: "og:title", content: "Join the live quiz — EDxKa" },
+      { property: "og:title", content: "Join the live quiz — Kominimo" },
       { property: "og:description", content: "Enter your name and play the live quiz." },
     ],
   }),

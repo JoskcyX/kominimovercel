@@ -25,9 +25,9 @@ import { formatMs, MEDAL, toOptions, type QuestionType } from "@/lib/quiz";
 export const Route = createFileRoute("/_authenticated/quiz/$quizId")({
   head: () => ({
     meta: [
-      { title: "Quiz control room — EDxKa" },
+      { title: "Quiz control room — Kominimo" },
       { name: "description", content: "Write questions, share the link and run the live session." },
-      { property: "og:title", content: "Quiz control room — EDxKa" },
+      { property: "og:title", content: "Quiz control room — Kominimo" },
       { property: "og:description", content: "Write questions and run the live session." },
     ],
   }),
@@ -153,7 +153,7 @@ function QuizControl() {
           </Link>
         </Button>
         <span className="font-display text-xl font-bold">
-          ED<span className="text-primary">xKa</span>
+          Komi<span className="text-primary">nimo</span>
         </span>
       </header>
 

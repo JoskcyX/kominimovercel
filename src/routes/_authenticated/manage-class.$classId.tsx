@@ -17,10 +17,10 @@ import { LiveRoom } from "@/components/LiveRoom";
 export const Route = createFileRoute("/_authenticated/manage-class/$classId")({
   head: () => ({
     meta: [
-      { title: "Class control room — EDxKa" },
+      { title: "Class control room — Kominimo" },
       { name: "description", content: "Approve students, share resources and push quizzes to your class." },
-      { property: "og:title", content: "Class control room — EDxKa" },
-      { property: "og:description", content: "Manage your EDxKa class." },
+      { property: "og:title", content: "Class control room — Kominimo" },
+      { property: "og:description", content: "Manage your Kominimo class." },
     ],
   }),
   component: ClassRoom,

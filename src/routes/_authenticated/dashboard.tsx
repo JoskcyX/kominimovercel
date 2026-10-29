@@ -13,9 +13,9 @@ import { StudentProgress } from "@/components/StudentProgress";
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
-      { title: "Tutor dashboard — EDxKa" },
+      { title: "Tutor dashboard — Kominimo" },
       { name: "description", content: "Create quizzes, share links and open live sessions." },
-      { property: "og:title", content: "Tutor dashboard — EDxKa" },
+      { property: "og:title", content: "Tutor dashboard — Kominimo" },
       { property: "og:description", content: "Create quizzes and run live sessions." },
     ],
   }),
@@ -87,7 +87,7 @@ function Dashboard() {
     <div className="min-h-screen confetti-bg">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
         <Link to="/" className="font-display text-2xl font-bold">
-          ED<span className="text-primary">xKa</span>
+          Komi<span className="text-primary">nimo</span>
         </Link>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">

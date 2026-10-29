@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { buildAttendanceXlsx, downloadBlob } from "@/lib/attendance";
 import { toast } from "sonner";
-import { ArrowLeft, Check, Copy, Eye, Plus, Radio, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, Copy, Download, Eye, Plus, Radio, Trash2, X } from "lucide-react";
 import { StudentPreview } from "@/components/StudentPreview";
 import { ClassMaterials } from "@/components/ClassMaterials";
 
@@ -268,9 +269,30 @@ function ClassRoom() {
           </div>
         </div>
 
+        <div className="surface-card mt-4 grid gap-4 p-4 sm:grid-cols-2">
+          <label className="grid gap-1 text-sm font-bold">
+            Letting students in
+            <select value={cls.data.admit_mode} onChange={(e) => saveSettings.mutate({ admit_mode: e.target.value })} className="h-11 rounded-xl border-2 border-input bg-background px-3 font-normal">
+              <option value="manual">I approve each student</option>
+              <option value="roster">Let in students on my expected list automatically</option>
+              <option value="auto">Let everyone in automatically</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-sm font-bold">
+            Students join with
+            <select value={cls.data.id_label} onChange={(e) => saveSettings.mutate({ id_label: e.target.value })} className="h-11 rounded-xl border-2 border-input bg-background px-3 font-normal">
+              <option value="phone">Name and phone number</option>
+              <option value="matric">Name and matric number</option>
+            </select>
+          </label>
+        </div>
+
         <div className="mt-8 grid gap-8 lg:grid-cols-2">
           <section>
-            <h2 className="text-2xl font-bold">Join requests ({pending.length})</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-2xl font-bold">Join requests ({pending.length})</h2>
+              {pending.length > 1 && <Button size="sm" onClick={() => admitAll.mutate()} className="rounded-full font-bold">Let all in</Button>}
+            </div>
             <div className="mt-3 grid gap-2">
               {pending.length === 0 && <p className="text-sm text-muted-foreground">No pending requests.</p>}
               {pending.map((m) => (
@@ -283,7 +305,10 @@ function ClassRoom() {
                 </div>
               ))}
             </div>
-            <h2 className="mt-8 text-2xl font-bold">Roster ({approved.length}) · {approved.filter(isLive).length} in class now</h2>
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-2xl font-bold">Roster ({approved.length}) · {approved.filter(isLive).length} in class now</h2>
+              <Button size="sm" variant="outline" disabled={exporting} onClick={exportAttendance} className="rounded-full border-2 font-bold"><Download className="size-4" /> {exporting ? "Preparing…" : "Download attendance (Excel)"}</Button>
+            </div>
             <div className="mt-3 grid gap-2">
               {approved.map((m) => {
                 const on = isLive(m);

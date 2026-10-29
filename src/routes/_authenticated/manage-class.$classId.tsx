@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { buildAttendanceXlsx, downloadBlob, type AttendanceRow } from "@/lib/attendance";
+import { buildAttendanceCsv, buildAttendanceXlsx, downloadBlob, type AttendanceRow } from "@/lib/attendance";
 import { toast } from "sonner";
 import { ArrowLeft, Check, Copy, Download, Eye, Plus, Radio, Trash2, X } from "lucide-react";
 import { StudentPreview } from "@/components/StudentPreview";
@@ -163,7 +163,7 @@ function ClassRoom() {
   });
 
   const saveSettings = useMutation({
-    mutationFn: async (patch: { admit_mode?: string; id_label?: string }) => {
+    mutationFn: async (patch: { admit_mode?: string; id_label?: string; attendance_threshold?: number }) => {
       const { error } = await supabase.from("classes").update(patch).eq("id", classId);
       if (error) throw error;
     },
@@ -210,20 +210,41 @@ function ClassRoom() {
     return "joined";
   };
 
+  // Attendance is based on time actually spent in the live class, not just showing up.
+  const sessionStart = cls.data.session_started_at ? new Date(cls.data.session_started_at).getTime() : null;
+  const sessionEnd = cls.data.session_ended_at && !cls.data.live_room_name ? new Date(cls.data.session_ended_at).getTime() : Date.now();
+  const sessionSecs = sessionStart ? Math.max(1, Math.round((sessionEnd - sessionStart) / 1000)) : 0;
+  const threshold = cls.data.attendance_threshold ?? 75;
+  const pct = (m: { present_seconds: number }) => (sessionSecs ? Math.min(100, Math.round((m.present_seconds / sessionSecs) * 100)) : 0);
+  const attendanceOf = (m: (typeof approved)[number]) =>
+    !m.last_seen_at && m.present_seconds === 0 ? "Did not join live" : pct(m) >= threshold ? "Attended" : "Joined only";
+  const mins = (s: number) => `${Math.floor(s / 60)}m ${s % 60}s`;
+
+  const buildRows = () => {
+    const rows: AttendanceRow[] = approved.map((m) => ({ name: m.name, identifier: m.phone, status: attendanceOf(m), minutes: Math.round(m.present_seconds / 60), percent: pct(m), joinedAt: m.joined_at as string | null, lastSeenAt: m.last_seen_at, leftAt: m.left_at }));
+    for (const r of roster.data ?? []) {
+      if (rosterStatus(r.identifier) === "absent") rows.push({ name: "", identifier: r.identifier, status: "Absent", minutes: 0, percent: 0, joinedAt: null, lastSeenAt: null, leftAt: null });
+    }
+    return rows;
+  };
+  const exportMeta = () => {
+    const date = cls.data!.session_started_at ? new Date(cls.data!.session_started_at) : new Date();
+    const safe = cls.data!.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "class";
+    return { date, base: `${safe}-attendance-${date.toISOString().slice(0, 10)}` };
+  };
+  const exportCsv = () => {
+    const { date, base } = exportMeta();
+    const csv = buildAttendanceCsv({ platform: "Kominimo", classTitle: cls.data!.title, subject: cls.data!.subject, classCode: cls.data!.join_code, classDate: date, idLabel: idName, threshold, sessionMinutes: Math.round(sessionSecs / 60), rows: buildRows() });
+    downloadBlob(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }), `${base}.csv`);
+  };
+
   const exportAttendance = async () => {
     if (!cls.data) return;
     setExporting(true);
     try {
-      const memberStatus = (m: (typeof approved)[number]) => (isLive(m) ? "Present" : m.left_at ? "Left" : m.last_seen_at ? "Attended" : "Not in live class");
-      const rows: AttendanceRow[] = approved.map((m) => ({ name: m.name, identifier: m.phone, status: memberStatus(m), joinedAt: m.joined_at, lastSeenAt: m.last_seen_at, leftAt: m.left_at }));
-      // Expected students who never joined are listed as absent.
-      for (const r of roster.data ?? []) {
-        if (rosterStatus(r.identifier) === "absent") rows.push({ name: "", identifier: r.identifier, status: "Absent", joinedAt: null, lastSeenAt: null, leftAt: null });
-      }
-      const date = cls.data.live_started_at ? new Date(cls.data.live_started_at) : new Date();
-      const blob = await buildAttendanceXlsx({ platform: "Kominimo", classTitle: cls.data.title, subject: cls.data.subject, classCode: cls.data.join_code, classDate: date, idLabel: idName, rows });
-      const safe = cls.data.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "class";
-      downloadBlob(blob, `${safe}-attendance-${date.toISOString().slice(0, 10)}.xlsx`);
+      const { date, base } = exportMeta();
+      const blob = await buildAttendanceXlsx({ platform: "Kominimo", classTitle: cls.data.title, subject: cls.data.subject, classCode: cls.data.join_code, classDate: date, idLabel: idName, threshold, sessionMinutes: Math.round(sessionSecs / 60), rows: buildRows() });
+      downloadBlob(blob, `${base}.xlsx`);
     } catch {
       toast.error("Could not create the spreadsheet");
     } finally {
@@ -307,7 +328,23 @@ function ClassRoom() {
             </div>
             <div className="mt-8 flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-2xl font-bold">Roster ({approved.length}) · {approved.filter(isLive).length} in class now</h2>
-              <Button size="sm" variant="outline" disabled={exporting} onClick={exportAttendance} className="rounded-full border-2 font-bold"><Download className="size-4" /> {exporting ? "Preparing…" : "Download attendance (Excel)"}</Button>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" disabled={exporting} onClick={exportAttendance} className="rounded-full border-2 font-bold"><Download className="size-4" /> {exporting ? "Preparing…" : "Excel"}</Button>
+                <Button size="sm" variant="outline" onClick={exportCsv} className="rounded-full border-2 font-bold"><Download className="size-4" /> CSV</Button>
+              </div>
+            </div>
+            <div className="surface-card mt-3 grid gap-2 p-3 text-sm">
+              <label className="flex flex-wrap items-center gap-2 font-bold">
+                Count as attended after
+                <select value={threshold} onChange={(e) => saveSettings.mutate({ attendance_threshold: Number(e.target.value) })} className="h-9 rounded-lg border-2 border-input bg-background px-2">
+                  {[25, 50, 60, 75, 90].map((v) => <option key={v} value={v}>{v}%</option>)}
+                </select>
+                of the live class
+              </label>
+              <p className="text-muted-foreground">
+                {sessionStart ? `Class length so far: ${mins(sessionSecs)}. ` : "Start a live class to begin tracking. "}
+                {approved.filter((m) => attendanceOf(m) === "Attended").length} attended · {approved.filter((m) => attendanceOf(m) === "Joined only").length} joined only (left early)
+              </p>
             </div>
             <div className="mt-3 grid gap-2">
               {approved.map((m) => {
@@ -321,7 +358,8 @@ function ClassRoom() {
                         {m.name}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {m.phone} · {on ? "Present" : left ? `Left at ${new Date(m.left_at!).toLocaleTimeString()}` : "Not in live class"}
+                        {m.phone} · {on ? "In class now" : left ? `Left at ${new Date(m.left_at!).toLocaleTimeString()}` : "Not in live class"}
+                        {sessionStart ? ` · ${mins(m.present_seconds)} (${pct(m)}%) · ${attendanceOf(m)}` : ""}
                       </p>
                     </div>
                     <Button size="sm" variant="ghost" onClick={() => { if (confirm(`Remove ${m.name} from this class?`)) removeMember.mutate(m.id); }}><Trash2 className="size-4" /> Remove</Button>

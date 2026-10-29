@@ -99,6 +99,13 @@
       "when": 1793261720673,
       "tag": "0013_join_fixes_class_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793262345234,
+      "tag": "0014_attendance_time_autoshutdown",
+      "breakpoints": true
     }
   ]
 }

@@ -127,7 +127,7 @@ function ClassPage() {
     if (error || !data) { toast.error("Could not send your request"); return; }
     localStorage.setItem(key, data as string);
     setMemberId(data as string);
-    refresh();
+    setStatus("pending"); // refreshes right away; auto-admitted students go straight in
   };
 
   if (loading) return <Shell><p className="text-muted-foreground">Loading class…</p></Shell>;
@@ -146,7 +146,7 @@ function ClassPage() {
         <form onSubmit={join} className="surface-card mt-8 grid gap-3 p-6">
           <p className="font-bold">Request to join this class</p>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className="h-12 rounded-xl border-2" />
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number" className="h-12 rounded-xl border-2" />
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={idLabel === "matric" ? "Matric number" : "Phone number"} className="h-12 rounded-xl border-2" />
           <Button disabled={busy} className="chunky h-12 rounded-xl font-bold">Send request</Button>
         </form>
       )}

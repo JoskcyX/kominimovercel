@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { buildAttendanceXlsx, downloadBlob } from "@/lib/attendance";
+import { buildAttendanceXlsx, downloadBlob, type AttendanceRow } from "@/lib/attendance";
 import { toast } from "sonner";
 import { ArrowLeft, Check, Copy, Download, Eye, Plus, Radio, Trash2, X } from "lucide-react";
 import { StudentPreview } from "@/components/StudentPreview";
@@ -215,7 +215,7 @@ function ClassRoom() {
     setExporting(true);
     try {
       const memberStatus = (m: (typeof approved)[number]) => (isLive(m) ? "Present" : m.left_at ? "Left" : m.last_seen_at ? "Attended" : "Not in live class");
-      const rows = approved.map((m) => ({ name: m.name, identifier: m.phone, status: memberStatus(m), joinedAt: m.joined_at, lastSeenAt: m.last_seen_at, leftAt: m.left_at }));
+      const rows: AttendanceRow[] = approved.map((m) => ({ name: m.name, identifier: m.phone, status: memberStatus(m), joinedAt: m.joined_at, lastSeenAt: m.last_seen_at, leftAt: m.left_at }));
       // Expected students who never joined are listed as absent.
       for (const r of roster.data ?? []) {
         if (rosterStatus(r.identifier) === "absent") rows.push({ name: "", identifier: r.identifier, status: "Absent", joinedAt: null, lastSeenAt: null, leftAt: null });

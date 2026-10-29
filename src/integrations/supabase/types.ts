@@ -64,6 +64,8 @@ export type Database = {
           class_id: string
           id: string
           joined_at: string
+          last_seen_at: string | null
+          left_at: string | null
           name: string
           phone: string
           status: Database["public"]["Enums"]["class_member_status"]
@@ -72,6 +74,8 @@ export type Database = {
           class_id: string
           id?: string
           joined_at?: string
+          last_seen_at?: string | null
+          left_at?: string | null
           name: string
           phone?: string
           status?: Database["public"]["Enums"]["class_member_status"]
@@ -80,6 +84,8 @@ export type Database = {
           class_id?: string
           id?: string
           joined_at?: string
+          last_seen_at?: string | null
+          left_at?: string | null
           name?: string
           phone?: string
           status?: Database["public"]["Enums"]["class_member_status"]
@@ -146,6 +152,7 @@ export type Database = {
           order_index: number
           title: string
           url: string | null
+          visible: boolean
         }
         Insert: {
           body?: string
@@ -156,6 +163,7 @@ export type Database = {
           order_index?: number
           title?: string
           url?: string | null
+          visible?: boolean
         }
         Update: {
           body?: string
@@ -166,10 +174,40 @@ export type Database = {
           order_index?: number
           title?: string
           url?: string | null
+          visible?: boolean
         }
         Relationships: [
           {
             foreignKeyName: "class_resources_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_roster: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          identifier: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          identifier: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          identifier?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_roster_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
@@ -183,6 +221,11 @@ export type Database = {
           description: string
           id: string
           join_code: string
+          live_room_name: string | null
+          live_room_url: string | null
+          live_started_at: string | null
+          presenting_page: number
+          presenting_resource_id: string | null
           subject: string
           title: string
           tutor_id: string
@@ -192,6 +235,11 @@ export type Database = {
           description?: string
           id?: string
           join_code: string
+          live_room_name?: string | null
+          live_room_url?: string | null
+          live_started_at?: string | null
+          presenting_page?: number
+          presenting_resource_id?: string | null
           subject?: string
           title?: string
           tutor_id: string
@@ -201,11 +249,24 @@ export type Database = {
           description?: string
           id?: string
           join_code?: string
+          live_room_name?: string | null
+          live_room_url?: string | null
+          live_started_at?: string | null
+          presenting_page?: number
+          presenting_resource_id?: string | null
           subject?: string
           title?: string
           tutor_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "classes_presenting_resource_id_fkey"
+            columns: ["presenting_resource_id"]
+            isOneToOne: false
+            referencedRelation: "class_resources"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       courses: {
         Row: {
@@ -604,6 +665,14 @@ export type Database = {
           status: Database["public"]["Enums"]["class_member_status"]
         }[]
       }
+      get_class_presentation: {
+        Args: { _member_id: string }
+        Returns: {
+          page: number
+          resource_id: string
+          title: string
+        }[]
+      }
       get_class_quizzes: {
         Args: { _member_id: string }
         Returns: {
@@ -648,6 +717,10 @@ export type Database = {
           time_limit: number
           type: Database["public"]["Enums"]["question_type"]
         }[]
+      }
+      live_heartbeat: {
+        Args: { _member_id: string; _present: boolean }
+        Returns: undefined
       }
       my_referral_list: {
         Args: never
@@ -731,7 +804,7 @@ export type Database = {
     Enums: {
       class_member_status: "pending" | "approved" | "rejected"
       class_quiz_mode: "pop" | "async"
-      class_resource_kind: "link" | "note" | "video"
+      class_resource_kind: "link" | "note" | "video" | "document"
       enrollment_status: "free" | "pending" | "paid"
       lesson_kind: "video" | "text"
       question_type: "multiple_choice" | "true_false" | "short_answer"
@@ -865,7 +938,7 @@ export const Constants = {
     Enums: {
       class_member_status: ["pending", "approved", "rejected"],
       class_quiz_mode: ["pop", "async"],
-      class_resource_kind: ["link", "note", "video"],
+      class_resource_kind: ["link", "note", "video", "document"],
       enrollment_status: ["free", "pending", "paid"],
       lesson_kind: ["video", "text"],
       question_type: ["multiple_choice", "true_false", "short_answer"],

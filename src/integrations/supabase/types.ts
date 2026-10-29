@@ -217,18 +217,35 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
+          plan: string
+          referral_code: string | null
+          referred_by: string | null
         }
         Insert: {
           created_at?: string
           display_name?: string
           id: string
+          plan?: string
+          referral_code?: string | null
+          referred_by?: string | null
         }
         Update: {
           created_at?: string
           display_name?: string
           id?: string
+          plan?: string
+          referral_code?: string | null
+          referred_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       questions: {
         Row: {
@@ -319,11 +336,98 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_earnings: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          id: string
+          referred_id: string
+          referrer_id: string
+          status: string
+        }
+        Insert: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+          status?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_earnings_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_earnings_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_events: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          event: string
+          id: string
+          meta: Json
+          tutor_id: string
+        }
+        Insert: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          event: string
+          id?: string
+          meta?: Json
+          tutor_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          event?: string
+          id?: string
+          meta?: Json
+          tutor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_events_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      activate_tutor_pro: {
+        Args: { _amount_cents: number; _currency: string; _tutor_id: string }
+        Returns: undefined
+      }
       finish_participant: {
         Args: { _participant_id: string }
         Returns: undefined
@@ -350,6 +454,25 @@ export type Database = {
           type: Database["public"]["Enums"]["question_type"]
         }[]
       }
+      my_referral_list: {
+        Args: never
+        Returns: {
+          display_name: string
+          earnings_cents: number
+          joined_at: string
+          plan: string
+        }[]
+      }
+      my_referral_summary: {
+        Args: never
+        Returns: {
+          earnings_paid_cents: number
+          earnings_pending_cents: number
+          pro_referred: number
+          referral_code: string
+          total_referred: number
+        }[]
+      }
       participant_alive: { Args: { _participant_id: string }; Returns: boolean }
       question_progress: {
         Args: { _question_id: string; _quiz_id: string }
@@ -369,6 +492,14 @@ export type Database = {
           order_index: number
           prompt: string
           question_id: string
+        }[]
+      }
+      resolve_referral_code: {
+        Args: { _code: string }
+        Returns: {
+          display_name: string
+          id: string
+          referral_code: string
         }[]
       }
       submit_answer: {

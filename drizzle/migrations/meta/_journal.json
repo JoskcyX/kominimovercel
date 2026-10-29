@@ -43,6 +43,13 @@
       "when": 1793260974233,
       "tag": "0005_courses",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793261006497,
+      "tag": "0006_plans_referrals",
+      "breakpoints": true
     }
   ]
 }

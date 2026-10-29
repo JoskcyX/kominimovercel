@@ -50,6 +50,13 @@
       "when": 1793261006497,
       "tag": "0006_plans_referrals",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793261032467,
+      "tag": "0007_classes",
+      "breakpoints": true
     }
   ]
 }

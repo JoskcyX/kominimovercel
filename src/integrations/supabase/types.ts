@@ -59,6 +59,154 @@ export type Database = {
           },
         ]
       }
+      class_members: {
+        Row: {
+          class_id: string
+          id: string
+          joined_at: string
+          name: string
+          phone: string
+          status: Database["public"]["Enums"]["class_member_status"]
+        }
+        Insert: {
+          class_id: string
+          id?: string
+          joined_at?: string
+          name: string
+          phone?: string
+          status?: Database["public"]["Enums"]["class_member_status"]
+        }
+        Update: {
+          class_id?: string
+          id?: string
+          joined_at?: string
+          name?: string
+          phone?: string
+          status?: Database["public"]["Enums"]["class_member_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_members_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_quizzes: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          mode: Database["public"]["Enums"]["class_quiz_mode"]
+          pushed_at: string | null
+          quiz_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          mode?: Database["public"]["Enums"]["class_quiz_mode"]
+          pushed_at?: string | null
+          quiz_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          mode?: Database["public"]["Enums"]["class_quiz_mode"]
+          pushed_at?: string | null
+          quiz_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_quizzes_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_quizzes_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: false
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_resources: {
+        Row: {
+          body: string
+          class_id: string
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["class_resource_kind"]
+          order_index: number
+          title: string
+          url: string | null
+        }
+        Insert: {
+          body?: string
+          class_id: string
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["class_resource_kind"]
+          order_index?: number
+          title?: string
+          url?: string | null
+        }
+        Update: {
+          body?: string
+          class_id?: string
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["class_resource_kind"]
+          order_index?: number
+          title?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_resources_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classes: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          join_code: string
+          subject: string
+          title: string
+          tutor_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          join_code: string
+          subject?: string
+          title?: string
+          tutor_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          join_code?: string
+          subject?: string
+          title?: string
+          tutor_id?: string
+        }
+        Relationships: []
+      }
       courses: {
         Row: {
           cover_url: string | null
@@ -293,11 +441,13 @@ export type Database = {
       }
       quizzes: {
         Row: {
+          closes_at: string | null
           created_at: string
           extend_seconds: number
           extend_signal: number
           id: string
           join_code: string
+          opens_at: string | null
           paused: boolean
           reveal_answers: boolean
           skip_signal: number
@@ -307,11 +457,13 @@ export type Database = {
           tutor_id: string
         }
         Insert: {
+          closes_at?: string | null
           created_at?: string
           extend_seconds?: number
           extend_signal?: number
           id?: string
           join_code: string
+          opens_at?: string | null
           paused?: boolean
           reveal_answers?: boolean
           skip_signal?: number
@@ -321,11 +473,13 @@ export type Database = {
           tutor_id: string
         }
         Update: {
+          closes_at?: string | null
           created_at?: string
           extend_seconds?: number
           extend_signal?: number
           id?: string
           join_code?: string
+          opens_at?: string | null
           paused?: boolean
           reveal_answers?: boolean
           skip_signal?: number
@@ -433,6 +587,47 @@ export type Database = {
         Returns: undefined
       }
       get_answer_key: { Args: { _question_id: string }; Returns: string }
+      get_class_by_code: {
+        Args: { _code: string }
+        Returns: {
+          description: string
+          id: string
+          subject: string
+          title: string
+        }[]
+      }
+      get_class_membership: {
+        Args: { _member_id: string }
+        Returns: {
+          class_id: string
+          name: string
+          status: Database["public"]["Enums"]["class_member_status"]
+        }[]
+      }
+      get_class_quizzes: {
+        Args: { _member_id: string }
+        Returns: {
+          closes_at: string
+          join_code: string
+          mode: Database["public"]["Enums"]["class_quiz_mode"]
+          opens_at: string
+          pushed_at: string
+          quiz_id: string
+          quiz_status: Database["public"]["Enums"]["quiz_status"]
+          title: string
+        }[]
+      }
+      get_class_resources: {
+        Args: { _member_id: string }
+        Returns: {
+          body: string
+          id: string
+          kind: Database["public"]["Enums"]["class_resource_kind"]
+          order_index: number
+          title: string
+          url: string
+        }[]
+      }
       get_quiz_board: {
         Args: { _quiz_id: string }
         Returns: {
@@ -474,6 +669,10 @@ export type Database = {
         }[]
       }
       participant_alive: { Args: { _participant_id: string }; Returns: boolean }
+      push_class_quiz: {
+        Args: { _class_id: string; _quiz_id: string }
+        Returns: undefined
+      }
       question_progress: {
         Args: { _question_id: string; _quiz_id: string }
         Returns: {
@@ -493,6 +692,11 @@ export type Database = {
           prompt: string
           question_id: string
         }[]
+      }
+      quiz_join_open: { Args: { _quiz_id: string }; Returns: boolean }
+      request_class_join: {
+        Args: { _class_id: string; _name: string; _phone: string }
+        Returns: string
       }
       resolve_referral_code: {
         Args: { _code: string }
@@ -525,6 +729,9 @@ export type Database = {
       }
     }
     Enums: {
+      class_member_status: "pending" | "approved" | "rejected"
+      class_quiz_mode: "pop" | "async"
+      class_resource_kind: "link" | "note" | "video"
       enrollment_status: "free" | "pending" | "paid"
       lesson_kind: "video" | "text"
       question_type: "multiple_choice" | "true_false" | "short_answer"
@@ -656,6 +863,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      class_member_status: ["pending", "approved", "rejected"],
+      class_quiz_mode: ["pop", "async"],
+      class_resource_kind: ["link", "note", "video"],
       enrollment_status: ["free", "pending", "paid"],
       lesson_kind: ["video", "text"],
       question_type: ["multiple_choice", "true_false", "short_answer"],

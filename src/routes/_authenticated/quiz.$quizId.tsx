@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Copy, Play, Plus, Square, Trash2, UserX, Users } from "lucide-react";
+import { ArrowLeft, Copy, Play, Plus, Square, Trash2, UserX, Users, Monitor } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BulkImport } from "@/components/BulkImport";
 import { HostControls } from "@/components/HostControls";
 import { QuizAnalytics } from "@/components/QuizAnalytics";
+import { QuizPresentation } from "@/components/QuizPresentation";
 
 import { formatMs, MEDAL, toOptions, type QuestionType } from "@/lib/quiz";
 
@@ -29,6 +30,8 @@ export const Route = createFileRoute("/_authenticated/quiz/$quizId")({
       { name: "description", content: "Write questions, share the link and run the live session." },
       { property: "og:title", content: "Quiz control room — Kominimo" },
       { property: "og:description", content: "Write questions and run the live session." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: QuizControl,
@@ -47,6 +50,7 @@ type QuestionRow = {
 function QuizControl() {
   const { quizId } = Route.useParams();
   const queryClient = useQueryClient();
+  const [presenting, setPresenting] = useState(false);
 
   const quiz = useQuery({
     queryKey: ["quiz", quizId],
@@ -59,6 +63,7 @@ function QuizControl() {
       if (error) throw error;
       return data;
     },
+    refetchInterval: 1500,
   });
 
   const questions = useQuery({
@@ -115,7 +120,10 @@ function QuizControl() {
         .eq("id", quizId);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["quiz", quizId] }),
+    onSuccess: (_data, status) => {
+      queryClient.invalidateQueries({ queryKey: ["quiz", quizId] });
+      if (status === "lobby" || status === "live") setPresenting(true);
+    },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Update failed"),
   });
 
@@ -146,6 +154,13 @@ function QuizControl() {
 
   return (
     <div className="min-h-screen confetti-bg">
+      {quiz.data && <QuizPresentation
+        open={presenting} onOpenChange={setPresenting} quiz={quiz.data}
+        questions={questions.data ?? []} players={participants.data ?? []}
+        busy={setStatus.isPending} onStart={() => setStatus.mutate("live")}
+        onEnd={() => setStatus.mutate("ended")}
+        onChanged={() => queryClient.invalidateQueries({ queryKey: ["quiz", quizId] })}
+      />}
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
         <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">
           <Link to="/dashboard">
@@ -184,6 +199,9 @@ function QuizControl() {
               <p className="text-sm font-bold text-muted-foreground">Session control</p>
               <p className="mt-1 text-lg font-bold capitalize">{status.replace("_", " ")}</p>
               <div className="mt-3 flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => setPresenting(true)} className="chunky rounded-xl border-2 font-bold">
+                  <Monitor className="size-4" /> Live display
+                </Button>
                 <Button
                   variant="secondary"
                   disabled={status === "lobby"}

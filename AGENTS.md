@@ -11,3 +11,4 @@
 
 - Schema-qualify extension functions in database trigger functions with fixed search paths; this prevents account creation failures.
 - Normalize authentication errors from structured objects and replace empty messages with actionable text; service errors may not be native Error instances.
+- Quiz projection uses the existing quiz controls and answer progress to follow the group’s first unanswered question; keep projection UI separate from question editing and never project contact details.

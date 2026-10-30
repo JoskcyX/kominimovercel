@@ -64,7 +64,7 @@ export function QuizPresentation({ open, onOpenChange, quiz, questions, players,
   };
   return (
     <Dialog open={open} onOpenChange={(value) => void close(value)}>
-      <DialogContent ref={stage} aria-describedby={undefined} className="inset-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-y-auto rounded-none border-0 bg-background p-0 sm:rounded-none">
+      <DialogContent ref={stage} aria-describedby={undefined} className="inset-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-x-hidden overflow-y-auto rounded-none border-0 bg-background p-0 sm:rounded-none">
         <DialogTitle className="sr-only">{quiz.title} — live quiz display</DialogTitle>
         <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b-2 border-border px-5 py-4 pr-12 sm:px-8 sm:pr-14">
           <span className="font-display text-2xl font-bold">Kọ́mì<span className="text-primary">nímọ̀</span></span>
@@ -75,7 +75,7 @@ export function QuizPresentation({ open, onOpenChange, quiz, questions, players,
             }}><Maximize2 className="size-4" /></Button>
           </div>
         </header>
-        <div className="grid flex-1 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid min-w-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px]">
           <main className="flex min-w-0 flex-col px-5 py-6 sm:px-10 sm:py-10">
             {lobby ? (
               <div className="flex flex-1 flex-col items-center justify-center text-center">

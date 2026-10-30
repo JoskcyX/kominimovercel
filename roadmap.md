@@ -1,6 +1,6 @@
 # EDxKa Roadmap
 
-- [ ] Add full-screen tutor quiz lobby, live question display and updating leaderboard; verify with a real quiz.
+- [x] Add full-screen tutor quiz lobby, live question display and updating leaderboard; verify with a real quiz.
 
 - [ ] Fix signup referral-code failure and unreadable errors; verify without sending test emails.
 

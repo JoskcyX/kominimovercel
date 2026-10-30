@@ -18,6 +18,8 @@ export const Route = createFileRoute("/join/$code")({
       { name: "description", content: "Enter your name, wait in the lobby and play the live quiz." },
       { property: "og:title", content: "Join the live quiz — Kominimo" },
       { property: "og:description", content: "Enter your name and play the live quiz." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: JoinPage,
@@ -286,7 +288,7 @@ function Lobby({ quiz }: { quiz: Quiz }) {
 
 function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
   const [questions, setQuestions] = useState<PlayableQuestion[] | null>(null);
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(quiz.skip_signal);
   const [answer, setAnswer] = useState("");
   const [remaining, setRemaining] = useState(0);
   const [submitted, setSubmitted] = useState(false);
@@ -314,20 +316,20 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
   const current = questions?.[index];
 
   const goNext = useCallback(async () => {
-    const isLast = index + 1 >= (questions?.length ?? 0);
+    const isLast = quiz.skip_signal >= (questions?.length ?? 0);
     if (isLast) {
       await supabase.rpc("finish_participant", { _participant_id: participantId });
       setDone(true);
       return;
     }
-    setIndex((value) => value + 1);
+    setIndex(quiz.skip_signal);
     setAnswer("");
     setSubmitted(false);
     setWasCorrect(null);
     setAnswerKey(null);
     setWaiting({ answered: 0, total: 0 });
     startedAt.current = Date.now();
-  }, [index, participantId, questions?.length]);
+  }, [quiz.skip_signal, participantId, questions?.length]);
 
   const submit = useCallback(
     async (response: string) => {
@@ -395,34 +397,30 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
     }
   }, [quiz.extend_signal, quiz.extend_seconds]);
 
-  // Host skipped the question.
+  // The tutor's question signal is the shared cursor, including for late arrivals.
   useEffect(() => {
     if (quiz.skip_signal === lastSkip.current || done || !current) return;
     lastSkip.current = quiz.skip_signal;
-    let cancelled = false;
-    (async () => {
-      if (!submitted) await submit("");
-      if (!cancelled) await goNext();
-    })();
-    return () => {
-      cancelled = true;
-    };
+    if (!submitted) void submit("");
+    void goNext();
   }, [quiz.skip_signal, done, current, submitted, submit, goNext]);
 
-  // Time is up: submit whatever we have, then move on.
+  // Time is up: lock the answer; only the tutor advances the shared question.
   useEffect(() => {
-    if (!current || done || remaining > 0 || quiz.paused) return;
+    if (!current || done || remaining > 0 || quiz.paused || Date.now() < deadline.current) return;
     let cancelled = false;
     (async () => {
       if (!submitted) await submit("");
-      if (!cancelled) await goNext();
+      if (!cancelled && index + 1 >= (questions?.length ?? 0)) {
+        await supabase.rpc("finish_participant", { _participant_id: participantId });
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, [remaining, current?.id, done, submitted, submit, goNext, current, quiz.paused]);
 
-  // Everyone answered early: skip ahead without waiting for the timer.
+  // Show answer progress while waiting for the tutor's next question.
   useEffect(() => {
     if (!current || done || !submitted || quiz.paused) return;
     let stop = false;
@@ -434,10 +432,6 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
       const row = (data as { answered: number; total: number }[] | null)?.[0];
       if (!row || stop) return;
       setWaiting(row);
-      if (row.total > 0 && row.answered >= row.total) {
-        stop = true;
-        await goNext();
-      }
     };
     check();
     const poll = setInterval(check, 1500);
@@ -534,7 +528,7 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
                   : "Waiting for the others…"}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                We move on as soon as everyone has answered.
+                Waiting for your tutor to show the next question.
               </p>
             </div>
           ) : (

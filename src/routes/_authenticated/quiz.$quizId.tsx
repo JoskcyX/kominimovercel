@@ -114,7 +114,7 @@ function QuizControl() {
         .from("quizzes")
         .update(
           status === "live"
-            ? { status, started_at: new Date().toISOString() }
+            ? { status, started_at: new Date().toISOString(), skip_signal: 0, extend_signal: 0, paused: false }
             : { status },
         )
         .eq("id", quizId);

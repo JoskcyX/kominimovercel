@@ -46,9 +46,9 @@ export function QuizPresentation({ open, onOpenChange, quiz, questions, players,
   useEffect(() => {
     if (!open && document.fullscreenElement === stage.current) void document.exitFullscreen();
   }, [open]);
-  const progress = getPresentationProgress(questions.map((question) => question.id), answers.data ?? [], players.map((player) => player.id));
+  const progress = getPresentationProgress(questions.map((question) => question.id), answers.data ?? [], players.map((player) => player.id), quiz.skip_signal);
   const current = questions[progress.index];
-  const ended = quiz.status === "ended" || progress.complete;
+  const ended = quiz.status === "ended";
   const lobby = quiz.status === "lobby" || quiz.status === "draft";
   const leaders = [...players].sort((a, b) => b.score - a.score || a.total_time_ms - b.total_time_ms);
   const options = current?.type === "true_false" ? ["True", "False"] : current?.options.filter((option) => option.trim()) ?? [];
@@ -81,7 +81,7 @@ export function QuizPresentation({ open, onOpenChange, quiz, questions, players,
               <div className="flex flex-1 flex-col items-center justify-center text-center">
                 <span className="mb-4 flex items-center gap-2 font-bold text-secondary"><span className="pulse-dot size-3 rounded-full bg-secondary" /> Lobby open</span>
                 <h1 className="max-w-3xl break-words text-3xl font-bold sm:text-5xl">{quiz.title}</h1>
-                <p className="mt-8 text-lg font-bold text-muted-foreground">Join at {typeof window === "undefined" ? "" : window.location.host}/join</p>
+                <p className="mt-8 max-w-full break-all text-lg font-bold text-muted-foreground">{typeof window === "undefined" ? "" : window.location.host}/join/{quiz.join_code}</p>
                 <p className="mt-2 font-display text-5xl font-bold text-primary sm:text-7xl">{quiz.join_code}</p>
                 <div className="mt-6 flex flex-wrap justify-center gap-3">
                   <Button variant="outline" onClick={copyLink}>{copied ? <Check className="size-4" /> : <Copy className="size-4" />} {copied ? "Copied" : "Copy student link"}</Button>

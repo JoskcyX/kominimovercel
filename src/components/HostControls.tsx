@@ -65,10 +65,10 @@ export function HostControls({
         <Button
           variant="outline"
           disabled={busy || !live || quiz.paused}
-          onClick={() => patch({ skip_signal: quiz.skip_signal + 1 }, "Skipped to the next question")}
+          onClick={() => patch({ skip_signal: quiz.skip_signal + 1 }, "Next question for everyone")}
           className="chunky rounded-xl border-2 font-bold"
         >
-          <FastForward className="size-4" /> Skip question
+          <FastForward className="size-4" /> Next question
         </Button>
 
         {[15, 30].map((seconds) => (

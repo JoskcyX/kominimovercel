@@ -407,7 +407,7 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
 
   // Time is up: lock the answer; only the tutor advances the shared question.
   useEffect(() => {
-    if (!current || done || remaining > 0 || quiz.paused) return;
+    if (!current || done || remaining > 0 || quiz.paused || Date.now() < deadline.current) return;
     let cancelled = false;
     (async () => {
       if (!submitted) await submit("");

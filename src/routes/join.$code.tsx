@@ -401,14 +401,8 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
   useEffect(() => {
     if (quiz.skip_signal === lastSkip.current || done || !current) return;
     lastSkip.current = quiz.skip_signal;
-    let cancelled = false;
-    (async () => {
-      if (!submitted) await submit("");
-      if (!cancelled) await goNext();
-    })();
-    return () => {
-      cancelled = true;
-    };
+    if (!submitted) void submit("");
+    void goNext();
   }, [quiz.skip_signal, done, current, submitted, submit, goNext]);
 
   // Time is up: lock the answer; only the tutor advances the shared question.

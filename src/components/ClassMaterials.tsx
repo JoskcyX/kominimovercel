@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Eye, EyeOff, FileText, Link2, MonitorPlay, Plus, Square, Trash2, Upload, Video } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmAction } from "@/components/ConfirmAction";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,6 +70,7 @@ export function ClassMaterials({ classId, presentingId, presentingPage }: { clas
   const [file, setFile] = useState<File | null>(null);
   const [hidden, setHidden] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<Res | null>(null);
 
   const add = useMutation({
     mutationFn: async () => {
@@ -93,7 +95,8 @@ export function ClassMaterials({ classId, presentingId, presentingPage }: { clas
   });
   const del = useMutation({
     mutationFn: async (id: string) => { const { error } = await supabase.from("class_resources").delete().eq("id", id); if (error) throw error; },
-    onSuccess: inv,
+    onSuccess: () => { setDeleting(null); inv(); toast.success("Material deleted"); },
+    onError: () => toast.error("Could not delete this material. Please try again."),
   });
   const toggle = useMutation({
     mutationFn: async (r: Res) => { const { error } = await supabase.from("class_resources").update({ visible: !r.visible }).eq("id", r.id); if (error) throw error; },
@@ -127,6 +130,7 @@ export function ClassMaterials({ classId, presentingId, presentingPage }: { clas
 
   return (
     <div>
+      <ConfirmAction open={!!deleting} onOpenChange={(value) => { if (!value) setDeleting(null); }} title="Delete material?" description={`“${deleting?.title ?? ""}” will be removed from this class. This cannot be undone.`} pending={del.isPending} onConfirm={() => { if (deleting) del.mutate(deleting.id); }} />
       <h2 className="mt-8 text-2xl font-bold">Materials</h2>
 
       {presenting && (
@@ -184,7 +188,7 @@ export function ClassMaterials({ classId, presentingId, presentingPage }: { clas
                 <Button size="sm" variant="ghost" onClick={() => toggle.mutate(r)} aria-label={r.visible ? "Hide from students" : "Show to students"}>
                   {r.visible ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => { if (confirm("Delete this material?")) del.mutate(r.id); }}><Trash2 className="size-4" /></Button>
+                <Button size="sm" variant="ghost" aria-label={`Delete material ${r.title}`} onClick={() => setDeleting(r)}><Trash2 className="size-4" /></Button>
               </div>
             </div>
             {open === r.id && <div className="mt-3"><TutorView r={r} /></div>}

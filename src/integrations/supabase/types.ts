@@ -531,6 +531,8 @@ export type Database = {
           join_code: string
           opens_at: string | null
           paused: boolean
+          question_deadline_at: string | null
+          question_paused_at: string | null
           reveal_answers: boolean
           skip_signal: number
           started_at: string | null
@@ -547,6 +549,8 @@ export type Database = {
           join_code: string
           opens_at?: string | null
           paused?: boolean
+          question_deadline_at?: string | null
+          question_paused_at?: string | null
           reveal_answers?: boolean
           skip_signal?: number
           started_at?: string | null
@@ -563,6 +567,8 @@ export type Database = {
           join_code?: string
           opens_at?: string | null
           paused?: boolean
+          question_deadline_at?: string | null
+          question_paused_at?: string | null
           reveal_answers?: boolean
           skip_signal?: number
           started_at?: string | null
@@ -663,6 +669,10 @@ export type Database = {
       activate_tutor_pro: {
         Args: { _amount_cents: number; _currency: string; _tutor_id: string }
         Returns: undefined
+      }
+      advance_quiz_timer: {
+        Args: { _expected_index: number; _quiz_id: string }
+        Returns: boolean
       }
       finish_participant: {
         Args: { _participant_id: string }

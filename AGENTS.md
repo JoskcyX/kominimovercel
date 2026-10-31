@@ -11,4 +11,5 @@
 
 - Schema-qualify extension functions in database trigger functions with fixed search paths; this prevents account creation failures.
 - Normalize authentication errors from structured objects and replace empty messages with actionable text; service errors may not be native Error instances.
-- Quiz projection and student screens share the tutor-controlled skip_signal question cursor (reset to zero on start); timers lock answers rather than advance locally, preventing projection drift. Keep projection separate from editing and never project contact details.
+- Quiz projection and student screens share skip_signal (reset to zero on start) and database-maintained deadlines; automatic advancement uses an atomic deadline-checked RPC so clients cannot advance early or twice. Keep projection separate from editing and never project contact details.
+- Destructive confirmations use the shared ConfirmAction dialog; keep it open on failure and disable repeated submissions while pending.

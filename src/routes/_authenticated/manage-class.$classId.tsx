@@ -8,6 +8,7 @@ import { StudentPreview } from "@/components/StudentPreview";
 import { ClassMaterials } from "@/components/ClassMaterials";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmAction } from "@/components/ConfirmAction";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +23,8 @@ export const Route = createFileRoute("/_authenticated/manage-class/$classId")({
       { name: "description", content: "Approve students, share resources and push quizzes to your class." },
       { property: "og:title", content: "Class control room — Kominimo" },
       { property: "og:description", content: "Manage your Kominimo class." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: ClassRoom,
@@ -37,6 +40,7 @@ function ClassRoom() {
   const { classId } = Route.useParams();
   const qc = useQueryClient();
   const inv = () => qc.invalidateQueries({ queryKey: ["class", classId] });
+  const [removing, setRemoving] = useState<{ id: string; name: string } | null>(null);
 
   const cls = useQuery({
     queryKey: ["class", classId, "info"],
@@ -84,7 +88,7 @@ function ClassRoom() {
       const { error } = await supabase.from("class_members").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { inv(); toast.success("Student removed"); },
+    onSuccess: () => { setRemoving(null); inv(); toast.success("Student removed"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
@@ -269,6 +273,7 @@ function ClassRoom() {
 
   return (
     <div className="min-h-screen confetti-bg">
+      <ConfirmAction open={!!removing} onOpenChange={(value) => { if (!value) setRemoving(null); }} title="Remove student?" description={`${removing?.name ?? "This student"} will be removed from this class and lose access to its materials.`} label="Remove student" pending={removeMember.isPending} onConfirm={() => { if (removing) removeMember.mutate(removing.id); }} />
       {roomUrl && <LiveRoom url={roomUrl} onLeave={() => setRoomUrl(null)} leaveLabel="Close" overlay={pending.length ? liveNotices : null} />}
       <main className="mx-auto max-w-5xl px-6 py-8 pb-24">
         <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm font-bold text-muted-foreground"><ArrowLeft className="size-4" /> Dashboard</Link>
@@ -362,7 +367,7 @@ function ClassRoom() {
                         {sessionStart ? ` · ${mins(m.present_seconds)} (${pct(m)}%) · ${attendanceOf(m)}` : ""}
                       </p>
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => { if (confirm(`Remove ${m.name} from this class?`)) removeMember.mutate(m.id); }}><Trash2 className="size-4" /> Remove</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setRemoving(m)}><Trash2 className="size-4" /> Remove</Button>
                   </div>
                 );
               })}

@@ -5,6 +5,7 @@ import { BookOpen, LogOut, Plus, Radio, Trash2, Trophy } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmAction } from "@/components/ConfirmAction";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { makeJoinCode } from "@/lib/quiz";
@@ -17,6 +18,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       { name: "description", content: "Create quizzes, share links and open live sessions." },
       { property: "og:title", content: "Tutor dashboard — Kominimo" },
       { property: "og:description", content: "Create quizzes and run live sessions." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Dashboard,
@@ -33,6 +36,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
+  const [deleting, setDeleting] = useState<{ id: string; title: string } | null>(null);
 
   const quizzes = useQuery({
     queryKey: ["quizzes"],
@@ -72,7 +76,7 @@ function Dashboard() {
       const { error } = await supabase.from("quizzes").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["quizzes"] }); toast.success("Quiz deleted"); },
+    onSuccess: () => { setDeleting(null); queryClient.invalidateQueries({ queryKey: ["quizzes"] }); toast.success("Quiz deleted"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Could not delete quiz"),
   });
 
@@ -85,6 +89,7 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen confetti-bg">
+      <ConfirmAction open={!!deleting} onOpenChange={(value) => { if (!value) setDeleting(null); }} title="Delete quiz?" description={`“${deleting?.title ?? ""}” and its questions and results will be permanently deleted.`} pending={deleteQuiz.isPending} onConfirm={() => { if (deleting) deleteQuiz.mutate(deleting.id); }} />
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
         <Link to="/" className="font-display text-2xl font-bold">
           Kọ́mì<span className="text-primary">nímọ̀</span>
@@ -169,18 +174,18 @@ function Dashboard() {
                 {quiz.status === "live" && <Radio className="size-4" />}
                 {STATUS_LABEL[quiz.status] ?? quiz.status}
               </span>
-              <button
+              <Button
                 type="button"
                 aria-label="Delete quiz"
                 className="rounded-full p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  if (confirm(`Delete "${quiz.title}"? This removes its questions and results.`)) deleteQuiz.mutate(quiz.id);
+                  setDeleting(quiz);
                 }}
               >
                 <Trash2 className="size-4" />
-              </button>
+              </Button>
             </Link>
           ))}
         </div>

@@ -309,13 +309,6 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
   const locked = useRef(false);
 
   useEffect(() => {
-    if (!quiz.question_deadline_at) return;
-    deadline.current = Date.parse(quiz.question_deadline_at);
-    const clock = quiz.paused && quiz.question_paused_at ? Date.parse(quiz.question_paused_at) : Date.now();
-    setRemaining(Math.max(0, Math.ceil((deadline.current - clock) / 1000)));
-  }, [quiz.question_deadline_at, quiz.question_paused_at, quiz.paused, current?.id]);
-
-  useEffect(() => {
     supabase.rpc("get_quiz_questions", { _quiz_id: quiz.id }).then(({ data }) => {
       const rows = (data ?? []).map((row) => ({
         ...(row as PlayableQuestion),
@@ -392,7 +385,7 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
     }
     if (pausedAt.current !== null) {
       const frozen = Date.now() - pausedAt.current;
-      deadline.current += frozen;
+      if (!quiz.question_deadline_at) deadline.current += frozen;
       startedAt.current += frozen;
       pausedAt.current = null;
     }
@@ -403,18 +396,24 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
     if (quiz.extend_signal === lastExtend.current) return;
     lastExtend.current = quiz.extend_signal;
     if (quiz.extend_seconds > 0) {
-      deadline.current += quiz.extend_seconds * 1000;
+      if (!quiz.question_deadline_at) deadline.current += quiz.extend_seconds * 1000;
       setRemaining(Math.max(0, Math.ceil((deadline.current - Date.now()) / 1000)));
       toast.info(`Your tutor added ${quiz.extend_seconds} seconds`);
     }
   }, [quiz.extend_signal, quiz.extend_seconds]);
 
+  useEffect(() => {
+    if (!quiz.question_deadline_at) return;
+    deadline.current = Date.parse(quiz.question_deadline_at);
+    const clock = quiz.paused && quiz.question_paused_at ? Date.parse(quiz.question_paused_at) : Date.now();
+    setRemaining(Math.max(0, Math.ceil((deadline.current - clock) / 1000)));
+  }, [quiz.question_deadline_at, quiz.question_paused_at, quiz.paused, current?.id]);
+
   // The tutor's question signal is the shared cursor, including for late arrivals.
   useEffect(() => {
     if (quiz.skip_signal === lastSkip.current || done || !current) return;
     lastSkip.current = quiz.skip_signal;
-    if (!submitted) void submit("");
-    void goNext();
+    void (async () => { if (!submitted) await submit(""); await goNext(); })();
   }, [quiz.skip_signal, done, current, submitted, submit, goNext]);
 
   // Time is up: lock the answer while the shared database cursor advances everyone.

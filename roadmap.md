@@ -1,5 +1,8 @@
 # EDxKa Roadmap
 
+- [ ] Replace remaining browser confirmations with custom in-app confirmation boxes.
+- [ ] Automatically advance timed quiz questions through the shared cursor; verify tutor and student stay synchronized.
+
 - [x] Add full-screen tutor quiz lobby, live question display and updating leaderboard; verify with a real quiz.
 
 - [ ] Fix signup referral-code failure and unreadable errors; verify without sending test emails.

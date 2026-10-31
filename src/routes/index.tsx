@@ -88,58 +88,64 @@ function Landing() {
 
           <div className="relative z-10 pop-in">
             <span className="inline-flex items-center gap-2 rounded-full border-2 border-secondary bg-accent px-3 py-1.5 text-xs font-extrabold text-accent-foreground sm:px-4 sm:py-2 sm:text-sm">
-              <Sparkles className="size-4" /> Quizzes and courses, all in one place
+              <span className="size-2.5 rounded-full bg-destructive pulse-dot" /> Live lecture halls for every class size
             </span>
             <h1 className="mt-5 max-w-2xl text-4xl font-bold leading-[1.02] sm:text-6xl lg:text-7xl">
-              Learn live. <span className="text-primary">Grow anytime.</span>
+              Teach thousands. <span className="text-primary">Live.</span>
             </h1>
-            <p className="mt-4 max-w-xl text-base leading-7 sm:mt-6 sm:text-lg sm:leading-8 text-muted-foreground sm:text-xl">
-              Race through tutor-led quizzes with your class, or build lasting skills through video and written courses at your own pace.
+            <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground sm:mt-6 sm:text-xl sm:leading-8">
+              Run live classes for 50 or 5,000 students, track real attendance automatically, and launch quizzes right inside the lecture.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button asChild className="chunky h-12 w-full rounded-xl px-7 sm:h-13 sm:w-auto text-base font-extrabold">
-                <Link to="/auth">Create and teach <ArrowRight /></Link>
-              </Button>
-              <Button asChild variant="outline" className="h-12 w-full rounded-xl border-2 px-7 sm:h-13 sm:w-auto text-base font-extrabold">
-                <Link to="/courses">Explore courses <BookOpen /></Link>
-              </Button>
+            <div className="mt-8 grid max-w-xl gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border-2 border-border bg-card p-4 shadow-sm">
+                <p className="text-xs font-extrabold uppercase text-primary">For lecturers</p>
+                <Button asChild className="chunky mt-3 h-12 w-full rounded-xl text-base font-extrabold">
+                  <Link to="/auth"><Video /> Start a live class</Link>
+                </Button>
+              </div>
+              <form onSubmit={join} className="rounded-2xl border-2 border-border bg-card p-4 shadow-sm">
+                <p className="text-xs font-extrabold uppercase text-secondary">For students</p>
+                <div className="mt-3 flex gap-2">
+                  <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="CLASS CODE" maxLength={10} aria-label="Class or quiz code" className="h-12 flex-1 rounded-xl border-2 text-center font-extrabold" />
+                  <Button type="submit" variant="secondary" className="h-12 rounded-xl px-4 font-extrabold" aria-label="Join"><ArrowRight /></Button>
+                </div>
+              </form>
             </div>
           </div>
 
           <div className="relative mx-auto w-full max-w-xl lg:translate-y-5">
-            <div className="learning-stage relative aspect-[0.9] overflow-hidden rounded-3xl border-2 border-border p-5 sm:aspect-[1.05] sm:p-8">
-              <div className="absolute left-4 top-4 rounded-2xl bg-card p-2 sm:left-7 sm:top-7 sm:p-3 shadow-lg float-object">
-                <BookOpen className="size-8 text-primary" />
+            <div className="overflow-hidden rounded-3xl border-2 border-border bg-foreground shadow-2xl">
+              <div className="flex items-center justify-between gap-2 px-4 py-3 text-background">
+                <span className="inline-flex items-center gap-2 rounded-full bg-destructive px-3 py-1 text-xs font-extrabold text-destructive-foreground"><span className="size-2 rounded-full bg-destructive-foreground pulse-dot" /> LIVE</span>
+                <span className="truncate text-xs font-bold text-background/80 sm:text-sm">BIO 101 · Human Physiology</span>
+                <span className="inline-flex items-center gap-1 text-xs font-extrabold"><Users className="size-4" /> 1,240</span>
               </div>
-              <div className="absolute right-4 top-6 rounded-full bg-secondary p-3 sm:right-8 sm:top-12 sm:p-4 shadow-lg float-object [animation-delay:-1.6s]">
-                <GraduationCap className="size-8 text-secondary-foreground" />
-              </div>
-              <div className="absolute bottom-8 left-4 rounded-full bg-warning p-3 sm:bottom-10 sm:left-10 sm:p-4 shadow-lg float-object [animation-delay:-3.1s]">
-                <Medal className="size-7 text-foreground" />
-              </div>
-              <div className="absolute bottom-8 right-4 rounded-2xl bg-card p-2 sm:right-9 sm:p-3 shadow-lg float-object [animation-delay:-2.4s]">
-                <FileText className="size-7 text-secondary" />
-              </div>
-
-              <div className="absolute inset-x-[8%] top-[22%] rounded-2xl border-2 border-border bg-card p-4 sm:inset-x-[15%] sm:top-[20%] sm:p-5 shadow-xl sm:p-6">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-2 text-xs sm:text-sm font-extrabold"><span className="size-2.5 rounded-full bg-success pulse-dot" /> Live quiz</span>
-                  <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-xs font-bold sm:px-3">Question 8/10</span>
+              <div className="relative aspect-video bg-gradient-to-br from-secondary/80 to-primary/70">
+                <div className="absolute inset-4 rounded-2xl bg-card/95 p-4 sm:inset-6 sm:p-6">
+                  <p className="text-xs font-extrabold uppercase text-muted-foreground">Slide 12</p>
+                  <p className="mt-2 font-display text-lg font-bold sm:text-2xl">The cardiac cycle</p>
+                  <div className="mt-3 space-y-2">
+                    <div className="h-2 w-4/5 rounded-full bg-muted" /><div className="h-2 w-3/5 rounded-full bg-muted" /><div className="h-2 w-2/3 rounded-full bg-muted" />
+                  </div>
                 </div>
-                <p className="mt-4 font-display text-base font-bold sm:mt-5 sm:text-xl">Which organ pumps blood around the body?</p>
-                <div className="mt-4 grid grid-cols-2 gap-2 text-sm sm:mt-5 font-bold">
-                  <span className="rounded-lg border-2 border-primary bg-primary/10 p-3">Heart</span>
-                  <span className="rounded-lg border-2 border-border bg-muted p-3">Lungs</span>
+                <div className="absolute bottom-3 right-3 grid size-20 place-items-center rounded-xl border-2 border-card bg-secondary shadow-lg sm:size-28">
+                  <GraduationCap className="size-8 text-secondary-foreground sm:size-10" />
+                  <span className="absolute bottom-1 left-1 rounded bg-foreground/70 px-1.5 text-[10px] font-bold text-background">Dr. Adeyemi</span>
                 </div>
-                <div className="mt-5 flex items-center gap-3">
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted"><div className="h-full w-3/4 rounded-full bg-secondary" /></div>
-                  <span className="font-display text-lg font-bold text-primary">14s</span>
-                </div>
+              </div>
+              <div className="flex gap-2 overflow-hidden px-4 py-3">
+                {["AO", "TB", "ZK", "CN", "FI", "+1.2k"].map((n) => (
+                  <span key={n} className="grid size-9 shrink-0 place-items-center rounded-full bg-background/15 text-xs font-extrabold text-background">{n}</span>
+                ))}
               </div>
             </div>
-            <div className="absolute -bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border-2 border-border bg-card px-4 py-2.5 shadow-xl sm:gap-3 sm:px-5 sm:py-3">
-              <Trophy className="size-5 text-primary" />
-              <span className="whitespace-nowrap text-xs font-extrabold sm:text-sm">Fast answers. Instant results.</span>
+            <div className="absolute -left-3 top-24 hidden rounded-2xl border-2 border-border bg-card p-3 shadow-xl float-object sm:block">
+              <p className="text-xs font-bold text-muted-foreground">Attendance</p>
+              <p className="font-display text-xl font-bold text-success">92% present</p>
+            </div>
+            <div className="absolute -right-3 -bottom-6 rounded-2xl border-2 border-border bg-card p-3 shadow-xl float-object [animation-delay:-2s]">
+              <p className="inline-flex items-center gap-1 text-xs font-extrabold text-primary"><Trophy className="size-4" /> Live quiz</p>
+              <p className="text-sm font-bold">Q3 · 14s left</p>
             </div>
           </div>
         </section>

@@ -18,9 +18,9 @@ type PresentationQuestion = PlayableQuestion & { correct_answer: string };
 const symbols = [Triangle, Square, Circle, Trophy];
 const tiles = ["bg-primary text-primary-foreground", "bg-secondary text-secondary-foreground", "bg-warning text-foreground", "bg-accent text-accent-foreground"];
 
-export function QuizPresentation({ open, onOpenChange, quiz, questions, players, busy, onStart, onEnd, onChanged }: {
+export function QuizPresentation({ open, onOpenChange, quiz, questions, players, remaining, busy, onStart, onEnd, onChanged }: {
   open: boolean; onOpenChange: (open: boolean) => void; quiz: PresentationQuiz;
-  questions: PresentationQuestion[]; players: PresentationPlayer[]; busy: boolean;
+  questions: PresentationQuestion[]; players: PresentationPlayer[]; remaining: number | null; busy: boolean;
   onStart: () => void; onEnd: () => void; onChanged: () => void;
 }) {
   const stage = useRef<HTMLDivElement>(null);
@@ -105,7 +105,7 @@ export function QuizPresentation({ open, onOpenChange, quiz, questions, players,
               <>
                 <div className="flex flex-wrap items-center justify-between gap-2 font-bold">
                   <span className="text-secondary">Question {progress.index + 1} / {questions.length}</span>
-                  <span>{quiz.paused ? "Paused" : `${progress.answered} / ${progress.total} answered`}</span>
+                  <span>{quiz.paused ? "Paused" : `${remaining ?? current?.time_limit ?? 0}s · ${progress.answered} / ${progress.total} answered`}</span>
                 </div>
                 <div className="my-8 flex flex-1 flex-col justify-center">
                   <h1 key={current?.id} className="pop-in break-words text-center text-3xl font-bold leading-tight sm:text-5xl">{current?.prompt ?? "Loading question…"}</h1>

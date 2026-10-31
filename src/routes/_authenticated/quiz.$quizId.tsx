@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Copy, Play, Plus, Square, Trash2, UserX, Users, Monitor } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,6 +20,7 @@ import { BulkImport } from "@/components/BulkImport";
 import { HostControls } from "@/components/HostControls";
 import { QuizAnalytics } from "@/components/QuizAnalytics";
 import { QuizPresentation } from "@/components/QuizPresentation";
+import { useQuizTimer } from "@/hooks/useQuizTimer";
 
 import { formatMs, MEDAL, toOptions, type QuestionType } from "@/lib/quiz";
 
@@ -57,7 +58,7 @@ function QuizControl() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("quizzes")
-        .select("id, title, join_code, status, paused, reveal_answers, skip_signal, extend_signal")
+        .select("id, title, join_code, status, paused, reveal_answers, skip_signal, extend_signal, question_deadline_at, question_paused_at")
         .eq("id", quizId)
         .single();
       if (error) throw error;
@@ -65,6 +66,9 @@ function QuizControl() {
     },
     refetchInterval: 1500,
   });
+
+  const refreshQuiz = useCallback(() => { void queryClient.invalidateQueries({ queryKey: ["quiz", quizId] }); }, [queryClient, quizId]);
+  const remaining = useQuizTimer(quiz.data, refreshQuiz);
 
   const questions = useQuery({
     queryKey: ["questions", quizId],
@@ -157,7 +161,7 @@ function QuizControl() {
       {quiz.data && <QuizPresentation
         open={presenting} onOpenChange={setPresenting} quiz={quiz.data}
         questions={questions.data ?? []} players={participants.data ?? []}
-        busy={setStatus.isPending} onStart={() => setStatus.mutate("live")}
+        remaining={remaining} busy={setStatus.isPending} onStart={() => setStatus.mutate("live")}
         onEnd={() => setStatus.mutate("ended")}
         onChanged={() => queryClient.invalidateQueries({ queryKey: ["quiz", quizId] })}
       />}

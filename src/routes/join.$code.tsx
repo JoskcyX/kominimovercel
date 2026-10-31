@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuizTimer } from "@/hooks/useQuizTimer";
 import { formatMs, MEDAL, toOptions, type BoardRow, type PlayableQuestion } from "@/lib/quiz";
 
 export const Route = createFileRoute("/join/$code")({
@@ -34,6 +35,8 @@ type Quiz = {
   skip_signal: number;
   extend_signal: number;
   extend_seconds: number;
+  question_deadline_at: string | null;
+  question_paused_at: string | null;
 };
 
 const joinSchema = z.object({
@@ -61,12 +64,14 @@ function JoinPage() {
   const loadQuiz = useCallback(async () => {
     const { data } = await supabase
       .from("quizzes")
-      .select("id, title, status, paused, reveal_answers, skip_signal, extend_signal, extend_seconds")
+      .select("id, title, status, paused, reveal_answers, skip_signal, extend_signal, extend_seconds, question_deadline_at, question_paused_at")
       .eq("join_code", code.toUpperCase())
       .maybeSingle();
     setQuiz(data as Quiz | null);
     setLoading(false);
   }, [code]);
+
+  useQuizTimer(quiz, loadQuiz);
 
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
@@ -89,7 +94,7 @@ function JoinPage() {
       supabase.removeChannel(channel);
       clearInterval(poll);
     };
-  }, [quiz?.id, loadQuiz, quiz]);
+  }, [quiz?.id, loadQuiz]);
 
   // The tutor can remove a student mid-session.
   useEffect(() => {
@@ -304,6 +309,13 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
   const locked = useRef(false);
 
   useEffect(() => {
+    if (!quiz.question_deadline_at) return;
+    deadline.current = Date.parse(quiz.question_deadline_at);
+    const clock = quiz.paused && quiz.question_paused_at ? Date.parse(quiz.question_paused_at) : Date.now();
+    setRemaining(Math.max(0, Math.ceil((deadline.current - clock) / 1000)));
+  }, [quiz.question_deadline_at, quiz.question_paused_at, quiz.paused, current?.id]);
+
+  useEffect(() => {
     supabase.rpc("get_quiz_questions", { _quiz_id: quiz.id }).then(({ data }) => {
       const rows = (data ?? []).map((row) => ({
         ...(row as PlayableQuestion),
@@ -362,9 +374,9 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
     setAnswerKey(null);
     setWaiting({ answered: 0, total: 0 });
     startedAt.current = Date.now();
-    deadline.current = Date.now() + current.time_limit * 1000;
+    deadline.current = quiz.question_deadline_at ? Date.parse(quiz.question_deadline_at) : Date.now() + current.time_limit * 1000;
     pausedAt.current = null;
-    setRemaining(current.time_limit);
+    setRemaining(Math.max(0, Math.ceil((deadline.current - Date.now()) / 1000)));
     const timer = setInterval(() => {
       if (pausedAt.current !== null) return;
       setRemaining(Math.max(0, Math.ceil((deadline.current - Date.now()) / 1000)));
@@ -405,7 +417,7 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
     void goNext();
   }, [quiz.skip_signal, done, current, submitted, submit, goNext]);
 
-  // Time is up: lock the answer; only the tutor advances the shared question.
+  // Time is up: lock the answer while the shared database cursor advances everyone.
   useEffect(() => {
     if (!current || done || remaining > 0 || quiz.paused || Date.now() < deadline.current) return;
     let cancelled = false;

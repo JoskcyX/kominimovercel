@@ -19,4 +19,5 @@
 - [x] Class materials: device video/doc upload, PDF page presenting with next/prev, show/hide per material, minimised live window, tutor view of shared materials.
 
 - [x] Homepage: Virtual Lecture Hall template
-- [ ] Mobile-first optimization across the whole app
+- [x] Mobile check of public pages (home, sign-in, courses, pricing, join)
+- [ ] Mobile check of signed-in tutor pages

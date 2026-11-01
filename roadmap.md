@@ -17,3 +17,7 @@
 - [x] Tutors upload class videos from their device; approved students watch on EDxKa.
 - [x] Live video rooms (Daily.co): tutor start/end, approved students join.
 - [x] Class materials: device video/doc upload, PDF page presenting with next/prev, show/hide per material, minimised live window, tutor view of shared materials.
+
+- [x] Homepage: Virtual Lecture Hall template
+- [x] Mobile check of public pages (home, sign-in, courses, pricing, join)
+- [ ] Mobile check of signed-in tutor pages

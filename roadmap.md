@@ -20,4 +20,4 @@
 
 - [x] Homepage: Virtual Lecture Hall template
 - [x] Mobile check of public pages (home, sign-in, courses, pricing, join)
-- [ ] Mobile check of signed-in tutor pages
+- [ ] Optimize mobile tutor class dashboard, materials, quizzes and other app screens; verify signed-in layouts.

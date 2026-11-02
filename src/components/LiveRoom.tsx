@@ -15,7 +15,7 @@ export function LiveRoom({ url, onLeave, leaveLabel = "Leave", startExpanded = f
         <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full border-2 border-foreground bg-foreground px-4 py-2 shadow-2xl">
           <span className="pulse-dot size-2 rounded-full bg-primary" />
           <span className="text-sm font-bold text-background">Live class audio</span>
-          <Button size="sm" variant="secondary" onClick={onLeave} aria-label={leaveLabel} className="h-11 min-w-11 rounded-full px-2 font-bold sm:h-7 sm:min-w-7" aria-label="Leave live class">
+          <Button size="sm" variant="secondary" onClick={onLeave} className="h-11 min-w-11 rounded-full px-2 font-bold sm:h-7 sm:min-w-7" aria-label="Leave live class">
             <X className="size-4" />
           </Button>
         </div>

@@ -160,8 +160,27 @@
   h3,
   h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
+}
+
+/* Shared phone ergonomics; page layouts remain responsible for wrapping rows. */
+@media (max-width: 639px) {
+  main, section, form, header { min-width: 0; }
+  input:not([type="checkbox"]):not([type="radio"]), textarea, select {
+    min-width: 0;
+    max-width: 100%;
+    font-size: 16px;
+  }
+  input:not([type="checkbox"]):not([type="radio"]), select {
+    min-height: 44px;
+  }
+  button:not([role="switch"]):not([role="checkbox"]):not([role="radio"]),
+  a[data-slot="button"] {
+    min-height: 44px;
+  }
+  button:has(> svg:only-child) { min-width: 44px; }
+  h1, h2, h3, h4 { overflow-wrap: anywhere; }
 }
 
 @utility surface-card {

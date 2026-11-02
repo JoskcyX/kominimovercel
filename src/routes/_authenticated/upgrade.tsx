@@ -17,6 +17,10 @@ export const Route = createFileRoute("/_authenticated/upgrade")({
         content:
           "Upgrade to Kominimo Pro for unlimited quizzes, CSV analytics and a 20% referral income stream.",
       },
+      { property: "og:title", content: "Upgrade to Pro — Kominimo" },
+      { property: "og:description", content: "Explore Kominimo Pro for tutors." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: UpgradePage,
@@ -58,17 +62,17 @@ function UpgradePage() {
   if (isPro(me?.plan)) {
     return (
       <div className="min-h-screen confetti-bg">
-        <header className="mx-auto flex max-w-4xl items-center justify-between px-6 py-6">
-          <Link to="/dashboard" className="font-display text-2xl font-bold">
+        <header className="mx-auto grid max-w-4xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-4 sm:px-6 sm:py-6">
+          <Link to="/dashboard" className="font-display text-xl font-bold sm:text-2xl">
             Kọ́mì<span className="text-primary">nímọ̀</span>
           </Link>
           <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">
-            <Link to="/dashboard">Back to dashboard</Link>
+            <Link to="/dashboard">Dashboard</Link>
           </Button>
         </header>
 
-        <main className="mx-auto max-w-4xl px-6 pb-24">
-          <div className="surface-card p-8 text-center">
+        <main className="mx-auto max-w-4xl px-4 pb-24 sm:px-6">
+          <div className="surface-card p-5 sm:p-8 text-center">
             <span className="mx-auto grid size-14 place-items-center rounded-full bg-secondary text-secondary-foreground">
               <Sparkles className="size-7" />
             </span>
@@ -87,7 +91,7 @@ function UpgradePage() {
                 so far.
               </p>
               <div className="mt-4 flex flex-col gap-2 rounded-xl border-2 border-dashed border-secondary bg-accent p-4 sm:flex-row sm:items-center">
-                <code className="flex-1 truncate text-sm font-bold">{shareUrl}</code>
+                <code className="min-w-0 flex-1 truncate text-sm font-bold">{shareUrl}</code>
                 <Button
                   variant="secondary"
                   className="chunky shrink-0 rounded-xl font-bold"
@@ -111,8 +115,8 @@ function UpgradePage() {
 
   return (
     <div className="min-h-screen confetti-bg">
-      <header className="mx-auto flex max-w-4xl items-center justify-between px-6 py-6">
-        <Link to="/dashboard" className="font-display text-2xl font-bold">
+      <header className="mx-auto grid max-w-4xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-4 sm:px-6 sm:py-6">
+        <Link to="/dashboard" className="font-display text-xl font-bold sm:text-2xl">
           Kọ́mì<span className="text-primary">nímọ̀</span>
         </Link>
         <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">
@@ -120,18 +124,18 @@ function UpgradePage() {
         </Button>
       </header>
 
-      <main className="mx-auto max-w-4xl px-6 pb-24">
+      <main className="mx-auto max-w-4xl px-4 pb-24 sm:px-6">
         <div className="surface-card overflow-hidden p-0">
-          <div className="bg-secondary p-8 text-secondary-foreground">
+          <div className="bg-secondary p-5 sm:p-8 text-secondary-foreground">
             <h1 className="font-display text-3xl font-bold">Upgrade to Pro</h1>
             <p className="mt-1 opacity-90">
               Unlimited quizzes, CSV analytics, white-label — and a referral income stream.
             </p>
           </div>
 
-          <div className="grid gap-6 p-8 sm:grid-cols-2">
+          <div className="grid gap-6 p-4 sm:p-8 sm:grid-cols-2">
             <div>
-              <p className="font-display text-4xl font-bold">
+              <p className="break-words font-display text-3xl font-bold sm:text-4xl">
                 {formatMoney(PRO_TIER.priceCents, PRO_TIER.currency)}
                 <span className="text-base font-normal text-muted-foreground">
                   /{PRO_TIER.billingPeriod}

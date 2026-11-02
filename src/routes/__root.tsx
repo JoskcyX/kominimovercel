@@ -92,8 +92,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: "Kominimo — Live Classroom Quizzes Your Students Race Through" },
       { property: "og:description", content: "Tutors build a quiz, share one link, and hit start. Students join a live lobby, answer against the clock, and land on a speed-and-accuracy leaderboard." },
       { name: "twitter:description", content: "Tutors build a quiz, share one link, and hit start. Students join a live lobby, answer against the clock, and land on a speed-and-accuracy leaderboard." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/01aac06d-cc85-4b52-8c5f-f1c30a91671c/id-preview-dcab75af--c699841d-e2b0-4a64-98b2-d886fd3461f5.lovable.app-1785549296859.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/01aac06d-cc85-4b52-8c5f-f1c30a91671c/id-preview-dcab75af--c699841d-e2b0-4a64-98b2-d886fd3461f5.lovable.app-1785549296859.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

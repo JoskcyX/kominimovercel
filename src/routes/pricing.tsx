@@ -47,7 +47,7 @@ const PRO_FEATURES = [
 function PricingPage() {
   return (
     <div className="min-h-screen confetti-bg">
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
+      <header className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-4 sm:px-6 sm:py-6">
         <Link to="/" className="font-display text-2xl font-bold">
           Kọ́mì<span className="text-primary">nímọ̀</span>
         </Link>
@@ -56,12 +56,12 @@ function PricingPage() {
         </Button>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 pb-24">
+      <main className="mx-auto max-w-5xl px-4 pb-24 sm:px-6">
         <div className="text-center">
           <span className="inline-flex items-center gap-2 rounded-full border-2 border-secondary bg-accent px-4 py-1 text-sm font-bold text-secondary-foreground">
             <Sparkles className="size-4" /> Refer tutors, earn 20%
           </span>
-          <h1 className="mt-4 font-display text-4xl font-bold sm:text-5xl">
+          <h1 className="mt-4 font-display text-3xl font-bold sm:text-4xl sm:text-5xl">
             Simple pricing, real income
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-lg text-muted-foreground">
@@ -71,10 +71,10 @@ function PricingPage() {
         </div>
 
         <div className="mt-10 grid gap-6 md:grid-cols-2">
-          <article className="chunky flex flex-col rounded-2xl border-2 bg-card p-8">
+          <article className="chunky flex flex-col rounded-2xl border-2 bg-card p-5 sm:p-8">
             <h2 className="font-display text-2xl font-bold">{FREE_TIER.name}</h2>
             <p className="text-sm text-muted-foreground">{FREE_TIER.tagline}</p>
-            <p className="mt-4 font-display text-4xl font-bold">{formatMoney(0, FREE_TIER.currency)}</p>
+            <p className="mt-4 font-display text-3xl font-bold sm:text-4xl">{formatMoney(0, FREE_TIER.currency)}</p>
             <ul className="mt-6 flex-1 space-y-3">
               {FREE_FEATURES.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-sm">
@@ -88,13 +88,13 @@ function PricingPage() {
             </Button>
           </article>
 
-          <article className="chunky relative flex flex-col rounded-2xl border-2 border-secondary bg-card p-8">
+          <article className="chunky relative flex flex-col rounded-2xl border-2 border-secondary bg-card p-5 sm:p-8">
             <span className="absolute -top-3 left-6 rounded-full border-2 border-secondary bg-secondary px-3 py-1 text-xs font-bold text-secondary-foreground">
               Earn while you teach
             </span>
             <h2 className="font-display text-2xl font-bold">{PRO_TIER.name}</h2>
             <p className="text-sm text-muted-foreground">{PRO_TIER.tagline}</p>
-            <p className="mt-4 font-display text-4xl font-bold">
+            <p className="mt-4 font-display text-3xl font-bold sm:text-4xl">
               {formatMoney(PRO_TIER.priceCents, PRO_TIER.currency)}
               <span className="text-base font-normal text-muted-foreground">
                 /{PRO_TIER.billingPeriod}

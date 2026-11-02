@@ -90,24 +90,24 @@ function Dashboard() {
   return (
     <div className="min-h-screen confetti-bg">
       <ConfirmAction open={!!deleting} onOpenChange={(value) => { if (!value) setDeleting(null); }} title="Delete quiz?" description={`“${deleting?.title ?? ""}” and its questions and results will be permanently deleted.`} pending={deleteQuiz.isPending} onConfirm={() => { if (deleting) deleteQuiz.mutate(deleting.id); }} />
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
-        <Link to="/" className="font-display text-2xl font-bold">
+      <header className="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-4 sm:px-6 sm:py-6">
+        <Link to="/" className="min-w-0 font-display text-xl font-bold sm:text-2xl">
           Kọ́mì<span className="text-primary">nímọ̀</span>
         </Link>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">
-            <Link to="/my-courses">
-              <BookOpen className="size-4" /> My courses
+            <Link to="/my-courses" aria-label="My courses">
+              <BookOpen className="size-4" /><span className="hidden sm:inline">My courses</span>
             </Link>
           </Button>
-          <Button variant="outline" onClick={signOut} className="chunky rounded-full border-2 font-bold">
-            <LogOut className="size-4" /> Sign out
+          <Button variant="outline" onClick={signOut} aria-label="Sign out" className="chunky rounded-full border-2 font-bold">
+            <LogOut className="size-4" /><span className="hidden sm:inline">Sign out</span>
           </Button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 pb-24">
-        <h1 className="text-4xl font-bold">Your quizzes</h1>
+      <main className="mx-auto max-w-5xl px-4 pb-24 sm:px-6">
+        <h1 className="text-3xl font-bold sm:text-4xl">Your quizzes</h1>
         <p className="mt-2 text-muted-foreground">
           Create a quiz, add your questions, then share the link and press start.
         </p>
@@ -154,10 +154,10 @@ function Dashboard() {
               key={quiz.id}
               to="/quiz/$quizId"
               params={{ quizId: quiz.id }}
-              className="surface-card flex flex-wrap items-center justify-between gap-4 p-5 transition-transform hover:-translate-y-0.5"
+              className="surface-card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:p-5 transition-transform hover:-translate-y-0.5"
             >
-              <div>
-                <p className="text-xl font-bold">{quiz.title}</p>
+              <div className="min-w-0 sm:row-span-1 row-span-2">
+                <p className="break-words text-lg font-bold sm:text-xl">{quiz.title}</p>
                 <p className="text-sm text-muted-foreground">
                   Code <span className="font-bold tracking-widest text-foreground">{quiz.join_code}</span>
                 </p>
@@ -256,7 +256,7 @@ function ClassesSection() {
       </form>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {classes.data?.map((c) => (
-          <Link key={c.id} to="/manage-class/$classId" params={{ classId: c.id }} className="surface-card p-5 transition-transform hover:-translate-y-0.5">
+          <Link key={c.id} to="/manage-class/$classId" params={{ classId: c.id }} className="surface-card min-w-0 break-words p-4 sm:p-5 transition-transform hover:-translate-y-0.5">
             <p className="text-xl font-bold">{c.title}</p>
             <p className="text-sm text-muted-foreground">Code <span className="font-bold tracking-widest text-foreground">{c.join_code}</span></p>
           </Link>

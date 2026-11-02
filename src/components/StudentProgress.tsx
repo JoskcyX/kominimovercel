@@ -33,7 +33,7 @@ export function StudentProgress() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-2xl font-bold">
-            <TrendingUp className="size-6 text-primary" /> Student progress
+            <TrendingUp className="size-6 shrink-0 text-primary" /> Student progress
           </h2>
           <p className="text-sm text-muted-foreground">
             How each student performs across every quiz you've run.
@@ -72,13 +72,13 @@ export function StudentProgress() {
         {rows.map((row) => (
           <div
             key={`${row.name}-${row.phone}`}
-            className="surface-card flex flex-wrap items-center justify-between gap-3 px-5 py-3"
+            className="surface-card grid min-w-0 gap-3 px-4 py-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:px-5"
           >
             <div>
-              <p className="font-bold">{row.name}</p>
+              <p className="break-words font-bold">{row.name}</p>
               <p className="text-xs text-muted-foreground">{row.phone}</p>
             </div>
-            <div className="flex flex-wrap items-center gap-5 text-sm font-bold">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-bold">
               <span className="text-muted-foreground">{row.sessions} quizzes</span>
               <span className="text-primary">{row.avg_score} avg correct</span>
               <span className="text-muted-foreground">{formatMs(row.avg_time_ms)} avg</span>

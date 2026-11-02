@@ -56,13 +56,13 @@ export function QuizAnalytics({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-2xl font-bold">
-            <BarChart3 className="size-6 text-primary" /> Question analytics
+            <BarChart3 className="size-6 shrink-0 text-primary" /> Question analytics
           </h2>
           <p className="text-sm text-muted-foreground">
             Live accuracy and speed for every question in this session.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap">
           <Button
             variant="outline"
             className="chunky rounded-xl border-2 font-bold"
@@ -133,10 +133,10 @@ export function QuizAnalytics({
         {rows.map((row, index) => (
           <div key={row.question_id} className="surface-card p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <p className="max-w-xl font-bold">
+              <p className="min-w-0 max-w-xl break-words font-bold">
                 <span className="text-muted-foreground">{index + 1}.</span> {row.prompt || "Untitled question"}
               </p>
-              <div className="flex items-center gap-4 text-sm font-bold">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-bold">
                 <span className="text-primary">{row.accuracy}%</span>
                 <span className="text-muted-foreground">
                   {row.correct}/{row.answered}

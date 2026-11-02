@@ -39,7 +39,7 @@ function CourseCatalog() {
 
   return (
     <div className="min-h-screen confetti-bg">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+      <header className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-4 sm:px-6 sm:py-6">
         <Link to="/" className="font-display text-2xl font-bold">
           Kọ́mì<span className="text-primary">nímọ̀</span>
         </Link>
@@ -48,7 +48,7 @@ function CourseCatalog() {
         </Button>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 pb-24">
+      <main className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
         <h1 className="font-display text-4xl font-bold sm:text-5xl">Courses</h1>
         <p className="mt-3 max-w-xl text-lg text-muted-foreground">
           Learn at your own pace with video and written lessons from Kominimo tutors.

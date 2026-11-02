@@ -135,8 +135,8 @@ export function ClassMaterials({ classId, presentingId, presentingPage }: { clas
 
       {presenting && (
         <div className="surface-card mt-3 grid gap-3 border-primary p-4">
-          <div className="flex items-center justify-between gap-2">
-            <p className="flex items-center gap-2 font-bold"><MonitorPlay className="size-4 text-primary" /> Students see: {presenting.title}</p>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+            <p className="flex min-w-0 items-center gap-2 break-words font-bold"><MonitorPlay className="size-4 text-primary" /> Students see: {presenting.title}</p>
             <Button size="sm" variant="outline" onClick={() => present.mutate({ id: null, page: 1 })}><Square className="size-4" /> Stop</Button>
           </div>
           {presentSrc && isPdf(presenting.url) ? <PdfPage src={presentSrc} page={presentingPage} onPageCount={setPages} /> : <TutorView r={presenting} />}
@@ -152,14 +152,14 @@ export function ClassMaterials({ classId, presentingId, presentingPage }: { clas
       )}
 
       <form onSubmit={(e) => { e.preventDefault(); add.mutate(); }} className="surface-card mt-3 grid gap-2 p-4">
-        <div className="flex gap-2">
+        <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
           <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" />
-          <select value={kind} onChange={(e) => { setKind(e.target.value as Kind); setFile(null); }} className="rounded-md border border-input bg-background px-2">
+          <select value={kind} onChange={(e) => { setKind(e.target.value as Kind); setFile(null); }} className="h-11 w-full min-w-0 rounded-md border border-input bg-background px-2">
             <option value="document">Document / PDF</option><option value="video">Video</option><option value="link">Link</option><option value="note">Note</option>
           </select>
         </div>
         {(kind === "video" || kind === "document") && (
-          <label className="flex cursor-pointer items-center gap-2 rounded-xl border-2 border-dashed border-border p-3 text-sm font-bold">
+          <label className="flex min-w-0 cursor-pointer items-center gap-2 break-all rounded-xl border-2 border-dashed border-border p-3 text-sm font-bold">
             <Upload className="size-4 text-primary" />
             {file ? file.name : kind === "video" ? "Upload a video from your device" : "Upload a PDF or document from your device"}
             <input type="file" accept={accept} className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
@@ -174,21 +174,21 @@ export function ClassMaterials({ classId, presentingId, presentingPage }: { clas
       <div className="mt-3 grid gap-2">
         {resources.data?.map((r) => (
           <div key={r.id} className="surface-card p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <button onClick={() => setOpen(open === r.id ? null : r.id)} className="flex items-center gap-2 text-left font-bold">
+            <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <Button variant="ghost" onClick={() => setOpen(open === r.id ? null : r.id)} className="h-auto min-w-0 justify-start whitespace-normal px-0 text-left font-bold">
                 {r.kind === "video" ? <Video className="size-4 text-primary" /> : r.kind === "link" ? <Link2 className="size-4 text-primary" /> : <FileText className="size-4 text-primary" />}
                 {r.title}
-                <span className={`text-xs ${r.visible ? "text-secondary" : "text-muted-foreground"}`}>{r.visible ? "· visible" : "· hidden"}</span>
-              </button>
-              <div className="flex gap-1">
+                <span className={`shrink-0 text-xs ${r.visible ? "text-secondary" : "text-muted-foreground"}`}>{r.visible ? "· visible" : "· hidden"}</span>
+              </Button>
+              <div className="flex flex-wrap items-center gap-1">
                 {r.kind === "document" && isPdf(r.url) && (
                   <Button size="sm" variant={presentingId === r.id ? "default" : "outline"} onClick={() => present.mutate({ id: r.id, page: 1 })}><MonitorPlay className="size-4" /> Present</Button>
                 )}
-                <Button size="sm" variant="ghost" onClick={() => setOpen(open === r.id ? null : r.id)} aria-label="View">View</Button>
-                <Button size="sm" variant="ghost" onClick={() => toggle.mutate(r)} aria-label={r.visible ? "Hide from students" : "Show to students"}>
+                <Button size="icon" variant="ghost" onClick={() => setOpen(open === r.id ? null : r.id)} aria-label={`View ${r.title}`}><Eye className="size-4" /></Button>
+                <Button size="icon" variant="ghost" onClick={() => toggle.mutate(r)} aria-label={r.visible ? "Hide from students" : "Show to students"}>
                   {r.visible ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
                 </Button>
-                <Button size="sm" variant="ghost" aria-label={`Delete material ${r.title}`} onClick={() => setDeleting(r)}><Trash2 className="size-4" /></Button>
+                <Button size="icon" variant="ghost" aria-label={`Delete material ${r.title}`} onClick={() => setDeleting(r)}><Trash2 className="size-4" /></Button>
               </div>
             </div>
             {open === r.id && <div className="mt-3"><TutorView r={r} /></div>}

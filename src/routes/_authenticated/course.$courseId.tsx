@@ -17,6 +17,8 @@ export const Route = createFileRoute("/_authenticated/course/$courseId")({
       { name: "description", content: "Edit course details, pricing and lessons." },
       { property: "og:title", content: "Edit course — Kominimo" },
       { property: "og:description", content: "Edit course details, pricing and lessons on Kominimo." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: CourseEditor,
@@ -130,17 +132,17 @@ function CourseEditor() {
 
   return (
     <div className="min-h-screen confetti-bg">
-      <main className="mx-auto max-w-4xl px-6 py-10">
+      <main className="mx-auto max-w-4xl px-4 py-5 sm:px-6 sm:py-10">
         <Button asChild variant="ghost" className="font-bold">
           <Link to="/my-courses">
             <ArrowLeft className="size-4" /> My courses
           </Link>
         </Button>
 
-        <section className="chunky mt-4 rounded-2xl border-2 bg-card p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <section className="chunky mt-4 rounded-2xl border-2 bg-card p-4 sm:p-6">
+          <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
             <h1 className="font-display text-3xl font-bold">Course details</h1>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {course.data?.is_published && (
                 <Button asChild variant="outline" className="chunky rounded-xl border-2 font-bold">
                   <Link to="/courses/$slug" params={{ slug: course.data.slug }}>
@@ -173,13 +175,13 @@ function CourseEditor() {
               placeholder="Cover image URL (optional)"
               className="chunky h-12 rounded-xl border-2"
             />
-            <div className="flex flex-wrap gap-3">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 sm:flex sm:flex-wrap">
               <Input
                 value={price}
                 onChange={(event) => setPrice(event.target.value)}
                 inputMode="decimal"
                 placeholder="0.00"
-                className="chunky h-12 w-40 rounded-xl border-2 font-bold"
+                className="chunky h-12 w-full min-w-0 sm:w-40 rounded-xl border-2 font-bold"
               />
               <select
                 value={currency}
@@ -204,14 +206,14 @@ function CourseEditor() {
           </div>
         </section>
 
-        <section className="chunky mt-8 rounded-2xl border-2 bg-card p-6">
+        <section className="chunky mt-8 rounded-2xl border-2 bg-card p-4 sm:p-6">
           <h2 className="font-display text-2xl font-bold">Lessons</h2>
 
           <div className="mt-4 space-y-3">
             {lessons.data?.map((lesson, index) => (
-              <div key={lesson.id} className="flex items-center justify-between rounded-xl border-2 p-4">
+              <div key={lesson.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl border-2 p-3 sm:p-4">
                 <div>
-                  <p className="font-bold">
+                  <p className="break-words font-bold">
                     {index + 1}. {lesson.title}
                   </p>
                   <p className="text-xs uppercase text-muted-foreground">{lesson.kind}</p>

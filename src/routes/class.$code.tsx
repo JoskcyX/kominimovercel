@@ -139,11 +139,11 @@ function ClassPage() {
   return (
     <Shell>
       <p className="text-sm font-bold uppercase tracking-widest text-primary">{info.subject || "Class"}</p>
-      <h1 className="mt-1 text-4xl font-bold">{info.title}</h1>
+      <h1 className="mt-1 break-words text-3xl font-bold sm:text-4xl">{info.title}</h1>
       {info.description && <p className="mt-2 text-muted-foreground">{info.description}</p>}
 
       {!memberId && (
-        <form onSubmit={join} className="surface-card mt-8 grid gap-3 p-6">
+        <form onSubmit={join} className="surface-card mt-8 grid gap-3 p-4 sm:p-6">
           <p className="font-bold">Request to join this class</p>
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className="h-12 rounded-xl border-2" />
           <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={idLabel === "matric" ? "Matric number" : "Phone number"} className="h-12 rounded-xl border-2" />
@@ -171,15 +171,15 @@ function ClassPage() {
           {roomUrl && <LiveRoom url={roomUrl} onLeave={() => setRoomUrl(null)} />}
           <Presentation memberId={memberId} />
           {live && (
-            <button onClick={joinLive} className="surface-card flex items-center justify-between gap-4 border-secondary bg-secondary p-6 text-left text-secondary-foreground">
-              <div className="flex items-center gap-3"><Video className="size-6" /><div><p className="text-sm font-bold uppercase">Your class is live</p><p className="text-xl font-bold">Tap to join the video class</p></div></div>
-              <PlayCircle className="size-8" />
-            </button>
+            <Button variant="secondary" onClick={joinLive} className="surface-card grid h-auto grid-cols-[minmax(0,1fr)_auto] gap-3 whitespace-normal border-secondary bg-secondary p-4 text-left text-secondary-foreground sm:p-6">
+              <div className="flex min-w-0 items-center gap-3"><Video className="size-6 shrink-0" /><div><p className="text-sm font-bold uppercase">Your class is live</p><p className="text-xl font-bold">Tap to join the video class</p></div></div>
+              <PlayCircle className="size-8 shrink-0" />
+            </Button>
           )}
           {pop && (
-            <Link to="/join/$code" params={{ code: pop.join_code }} className="surface-card flex items-center justify-between gap-4 border-primary bg-primary p-6 text-primary-foreground">
-              <div className="flex items-center gap-3"><Radio className="size-6 animate-pulse" /><div><p className="text-sm font-bold uppercase">Pop quiz now</p><p className="text-xl font-bold">{pop.title}</p></div></div>
-              <PlayCircle className="size-8" />
+            <Link to="/join/$code" params={{ code: pop.join_code }} className="surface-card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-primary bg-primary p-4 sm:p-6 text-primary-foreground">
+              <div className="flex min-w-0 items-center gap-3"><Radio className="size-6 shrink-0 animate-pulse" /><div><p className="text-sm font-bold uppercase">Pop quiz now</p><p className="break-words text-lg font-bold sm:text-xl">{pop.title}</p></div></div>
+              <PlayCircle className="size-8 shrink-0" />
             </Link>
           )}
           <section>
@@ -192,7 +192,7 @@ function ClassPage() {
                 return (
                   <div key={q.quiz_id} className="surface-card flex flex-wrap items-center justify-between gap-3 p-4">
                     <div>
-                      <p className="font-bold">{q.title}</p>
+                      <p className="break-words font-bold">{q.title}</p>
                       <p className="text-xs text-muted-foreground">
                         {q.opens_at ? `Opens ${new Date(q.opens_at).toLocaleString()}` : "Open anytime"}
                         {q.closes_at ? ` · Closes ${new Date(q.closes_at).toLocaleString()}` : ""}
@@ -212,7 +212,7 @@ function ClassPage() {
               {resources.length === 0 && <p className="text-sm text-muted-foreground">No resources yet.</p>}
               {resources.map((r) => (
                 <div key={r.id} className="surface-card p-4">
-                  <p className="flex items-center gap-2 font-bold">
+                  <p className="flex items-center gap-2 break-words font-bold">
                     {r.kind === "video" ? <Video className="size-4 text-primary" /> : r.kind === "note" ? <FileText className="size-4 text-primary" /> : <Link2 className="size-4 text-primary" />}
                     {r.title}
                   </p>
@@ -302,11 +302,11 @@ function VideoPlayer({ memberId, resourceId, url }: { memberId: string; resource
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen confetti-bg">
-      <header className="mx-auto flex max-w-3xl items-center gap-2 px-6 py-6">
+      <header className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-4 sm:px-6 sm:py-6">
         <Link to="/" className="font-display text-2xl font-bold">Kọ́mì<span className="text-primary">nímọ̀</span></Link>
         <BookOpen className="size-5 text-secondary" />
       </header>
-      <main className="mx-auto max-w-3xl px-6 pb-24">{children}</main>
+      <main className="mx-auto max-w-3xl px-4 pb-24 sm:px-6">{children}</main>
     </div>
   );
 }

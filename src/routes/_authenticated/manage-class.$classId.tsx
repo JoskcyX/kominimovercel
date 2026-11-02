@@ -262,8 +262,8 @@ function ClassRoom() {
         <div key={m.id} className="flex items-center justify-between gap-2 rounded-xl border-2 border-primary bg-card p-2 shadow-lg">
           <div className="min-w-0"><p className="truncate text-sm font-bold">{m.name} wants to join</p><p className="truncate text-xs text-muted-foreground">{m.phone}</p></div>
           <div className="flex shrink-0 gap-1">
-            <Button size="sm" className="h-7 px-2" onClick={() => setStatus.mutate({ id: m.id, status: "approved" })} aria-label={`Let ${m.name} in`}><Check className="size-4" /></Button>
-            <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => setStatus.mutate({ id: m.id, status: "rejected" })} aria-label={`Decline ${m.name}`}><X className="size-4" /></Button>
+            <Button size="sm" className="h-11 w-11 px-2 sm:h-7 sm:w-auto" onClick={() => setStatus.mutate({ id: m.id, status: "approved" })} aria-label={`Let ${m.name} in`}><Check className="size-4" /></Button>
+            <Button size="sm" variant="outline" className="h-11 w-11 px-2 sm:h-7 sm:w-auto" onClick={() => setStatus.mutate({ id: m.id, status: "rejected" })} aria-label={`Decline ${m.name}`}><X className="size-4" /></Button>
           </div>
         </div>
       ))}
@@ -275,12 +275,12 @@ function ClassRoom() {
     <div className="min-h-screen confetti-bg">
       <ConfirmAction open={!!removing} onOpenChange={(value) => { if (!value) setRemoving(null); }} title="Remove student?" description={`${removing?.name ?? "This student"} will be removed from this class and lose access to its materials.`} label="Remove student" pending={removeMember.isPending} onConfirm={() => { if (removing) removeMember.mutate(removing.id); }} />
       {roomUrl && <LiveRoom url={roomUrl} onLeave={() => setRoomUrl(null)} leaveLabel="Close" overlay={pending.length ? liveNotices : null} />}
-      <main className="mx-auto max-w-5xl px-6 py-8 pb-24">
+      <main className="mx-auto max-w-5xl px-4 py-5 pb-24 sm:px-6 sm:py-8">
         <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm font-bold text-muted-foreground"><ArrowLeft className="size-4" /> Dashboard</Link>
-        <h1 className="mt-3 text-4xl font-bold">{cls.data.title}</h1>
-        <div className="surface-card mt-4 flex flex-wrap items-center justify-between gap-3 p-4">
+        <h1 className="mt-3 break-words text-2xl font-bold sm:text-4xl">{cls.data.title}</h1>
+        <div className="surface-card mt-4 grid gap-3 p-4 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
           <div><p className="text-sm text-muted-foreground">Class code</p><p className="text-2xl font-bold tracking-widest">{cls.data.join_code}</p></div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
           {cls.data.live_room_name ? (
             <>
               <Button onClick={() => goLive.mutate()} disabled={goLive.isPending} className="chunky rounded-full font-bold"><Radio className="size-4" /> Rejoin live</Button>
@@ -296,25 +296,25 @@ function ClassRoom() {
         </div>
 
         <div className="surface-card mt-4 grid gap-4 p-4 sm:grid-cols-2">
-          <label className="grid gap-1 text-sm font-bold">
+          <label className="grid min-w-0 gap-1 text-sm font-bold">
             Letting students in
-            <select value={cls.data.admit_mode} onChange={(e) => saveSettings.mutate({ admit_mode: e.target.value })} className="h-11 rounded-xl border-2 border-input bg-background px-3 font-normal">
+            <select value={cls.data.admit_mode} onChange={(e) => saveSettings.mutate({ admit_mode: e.target.value })} className="h-11 w-full min-w-0 max-w-full rounded-xl border-2 border-input bg-background px-3 font-normal">
               <option value="manual">I approve each student</option>
               <option value="roster">Let in students on my expected list automatically</option>
               <option value="auto">Let everyone in automatically</option>
             </select>
           </label>
-          <label className="grid gap-1 text-sm font-bold">
+          <label className="grid min-w-0 gap-1 text-sm font-bold">
             Students join with
-            <select value={cls.data.id_label} onChange={(e) => saveSettings.mutate({ id_label: e.target.value })} className="h-11 rounded-xl border-2 border-input bg-background px-3 font-normal">
+            <select value={cls.data.id_label} onChange={(e) => saveSettings.mutate({ id_label: e.target.value })} className="h-11 w-full min-w-0 max-w-full rounded-xl border-2 border-input bg-background px-3 font-normal">
               <option value="phone">Name and phone number</option>
               <option value="matric">Name and matric number</option>
             </select>
           </label>
         </div>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-2">
-          <section>
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <section className="min-w-0">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-2xl font-bold">Join requests ({pending.length})</h2>
               {pending.length > 1 && <Button size="sm" onClick={() => admitAll.mutate()} className="rounded-full font-bold">Let all in</Button>}
@@ -322,18 +322,18 @@ function ClassRoom() {
             <div className="mt-3 grid gap-2">
               {pending.length === 0 && <p className="text-sm text-muted-foreground">No pending requests.</p>}
               {pending.map((m) => (
-                <div key={m.id} className="surface-card flex items-center justify-between gap-2 p-3">
-                  <div><p className="font-bold">{m.name}</p><p className="text-xs text-muted-foreground">{m.phone}</p></div>
+                <div key={m.id} className="surface-card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 p-3">
+                  <div className="min-w-0 break-words"><p className="font-bold">{m.name}</p><p className="text-xs text-muted-foreground">{m.phone}</p></div>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={() => setStatus.mutate({ id: m.id, status: "approved" })}><Check className="size-4" /></Button>
-                    <Button size="sm" variant="outline" onClick={() => setStatus.mutate({ id: m.id, status: "rejected" })}><X className="size-4" /></Button>
+                    <Button size="icon" aria-label={`Let ${m.name} in`} onClick={() => setStatus.mutate({ id: m.id, status: "approved" })}><Check className="size-4" /></Button>
+                    <Button size="icon" variant="outline" aria-label={`Decline ${m.name}`} onClick={() => setStatus.mutate({ id: m.id, status: "rejected" })}><X className="size-4" /></Button>
                   </div>
                 </div>
               ))}
             </div>
             <div className="mt-8 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-2xl font-bold">Roster ({approved.length}) · {approved.filter(isLive).length} in class now</h2>
-              <div className="flex flex-wrap gap-2">
+              <h2 className="min-w-0 text-xl font-bold sm:text-2xl">Roster ({approved.length})<span className="mt-1 block font-sans text-sm font-normal text-muted-foreground">{approved.filter(isLive).length} in class now</span></h2>
+              <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                 <Button size="sm" variant="outline" disabled={exporting} onClick={exportAttendance} className="rounded-full border-2 font-bold"><Download className="size-4" /> {exporting ? "Preparing…" : "Excel"}</Button>
                 <Button size="sm" variant="outline" onClick={exportCsv} className="rounded-full border-2 font-bold"><Download className="size-4" /> CSV</Button>
               </div>
@@ -356,10 +356,10 @@ function ClassRoom() {
                 const on = isLive(m);
                 const left = !on && m.left_at;
                 return (
-                  <div key={m.id} className="surface-card flex items-center justify-between gap-2 p-3">
-                    <div>
-                      <p className="flex items-center gap-2 font-bold">
-                        <span className={`size-2.5 rounded-full ${on ? "bg-secondary" : left ? "bg-primary" : "bg-muted-foreground/40"}`} />
+                  <div key={m.id} className="surface-card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 p-3">
+                    <div className="min-w-0 break-words">
+                      <p className="flex items-start gap-2 font-bold">
+                        <span className={`size-2.5 shrink-0 rounded-full ${on ? "bg-secondary" : left ? "bg-primary" : "bg-muted-foreground/40"}`} />
                         {m.name}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -367,13 +367,13 @@ function ClassRoom() {
                         {sessionStart ? ` · ${mins(m.present_seconds)} (${pct(m)}%) · ${attendanceOf(m)}` : ""}
                       </p>
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => setRemoving(m)}><Trash2 className="size-4" /> Remove</Button>
+                    <Button size="icon" variant="ghost" aria-label={`Remove ${m.name}`} onClick={() => setRemoving(m)}><Trash2 className="size-4" /></Button>
                   </div>
                 );
               })}
             </div>
 
-            <div className="surface-card mt-8 flex items-center justify-between gap-3 p-4">
+            <div className="surface-card mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-4">
               <div>
                 <h2 className="text-xl font-bold">Expected students</h2>
                 <p className="text-sm text-muted-foreground">Track attendance against your own list of names, matric numbers or phone numbers.</p>
@@ -406,9 +406,9 @@ function ClassRoom() {
                 {roster.data!.map((r) => {
                   const st = rosterStatus(r.identifier);
                   return (
-                    <div key={r.id} className="surface-card flex items-center justify-between px-3 py-2 text-sm">
-                      <span className="flex items-center gap-2">
-                        <span className={`size-2.5 rounded-full ${st === "present" ? "bg-secondary" : st === "left" ? "bg-primary" : "bg-muted-foreground/40"}`} />
+                    <div key={r.id} className="surface-card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2 text-sm">
+                      <span className="flex min-w-0 flex-wrap items-center gap-2 break-words">
+                        <span className={`size-2.5 shrink-0 rounded-full ${st === "present" ? "bg-secondary" : st === "left" ? "bg-primary" : "bg-muted-foreground/40"}`} />
                         <span className="font-bold">{r.identifier}</span>
                         <span className="text-muted-foreground">{st === "present" ? "Present" : st === "left" ? "Left" : st === "joined" ? "In class, not live" : "Absent"}</span>
                       </span>
@@ -421,18 +421,18 @@ function ClassRoom() {
             </>)}
           </section>
 
-          <section>
+          <section className="min-w-0">
             <h2 className="text-2xl font-bold">Quizzes</h2>
             <div className="surface-card mt-3 grid gap-2 p-4">
-              <select value={pick} onChange={(e) => setPick(e.target.value)} className="h-11 rounded-xl border-2 border-input bg-background px-3">
+              <select value={pick} onChange={(e) => setPick(e.target.value)} className="h-11 w-full min-w-0 max-w-full rounded-xl border-2 border-input bg-background px-3">
                 <option value="">Choose one of your quizzes…</option>
                 {myQuizzes.data?.map((q) => <option key={q.id} value={q.id}>{q.title}</option>)}
               </select>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <label className="text-xs font-bold">Opens<Input type="datetime-local" value={opens} onChange={(e) => setOpens(e.target.value)} /></label>
                 <label className="text-xs font-bold">Closes<Input type="datetime-local" value={closes} onChange={(e) => setCloses(e.target.value)} /></label>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                 <Button disabled={!pick} onClick={() => setPreview({ id: pick, title: myQuizzes.data?.find((q) => q.id === pick)?.title ?? "Quiz" })} variant="ghost" className="rounded-full font-bold"><Eye className="size-4" /> Preview as student</Button>
                 <Button disabled={!pick || addAsync.isPending} onClick={() => addAsync.mutate()} variant="outline" className="rounded-full border-2 font-bold">Publish anytime quiz</Button>
                 <Button disabled={!pick || push.isPending} onClick={() => push.mutate(pick)} className="chunky rounded-full font-bold"><Radio className="size-4" /> Push pop quiz now</Button>
@@ -444,16 +444,16 @@ function ClassRoom() {
                 const q = l.quizzes as unknown as { id: string; title: string; status: string; opens_at: string | null; closes_at: string | null } | null;
                 if (!q) return null;
                 return (
-                  <div key={l.id} className="surface-card flex flex-wrap items-center justify-between gap-2 p-3">
+                  <div key={l.id} className="surface-card grid min-w-0 gap-3 p-3">
                     <div>
-                      <p className="font-bold">{q.title}</p>
+                      <p className="break-words font-bold">{q.title}</p>
                       <p className="text-xs text-muted-foreground">
                         {l.mode === "pop" ? "Pop quiz" : "Anytime"} · {q.status}
                         {q.opens_at ? ` · from ${toLocalInput(q.opens_at).replace("T", " ")}` : ""}
                         {q.closes_at ? ` · until ${toLocalInput(q.closes_at).replace("T", " ")}` : ""}
                       </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button size="sm" variant="ghost" onClick={() => setPreview({ id: q.id, title: q.title })}><Eye className="size-4" /> Preview</Button>
                       <Button asChild size="sm" variant="outline"><Link to="/quiz/$quizId" params={{ quizId: q.id }}>Results</Link></Button>
                       {q.status !== "ended" && <Button size="sm" variant="ghost" onClick={() => unpublish.mutate(q.id)}>Unpublish</Button>}

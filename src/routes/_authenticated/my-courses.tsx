@@ -16,6 +16,8 @@ export const Route = createFileRoute("/_authenticated/my-courses")({
       { name: "description", content: "Create and publish video or written courses for your students." },
       { property: "og:title", content: "My courses — Kominimo" },
       { property: "og:description", content: "Create and publish courses on Kominimo." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: TutorCourses,
@@ -61,14 +63,14 @@ function TutorCourses() {
 
   return (
     <div className="min-h-screen confetti-bg">
-      <main className="mx-auto max-w-5xl px-6 py-10">
+      <main className="mx-auto max-w-5xl px-4 py-5 sm:px-6 sm:py-10">
         <Button asChild variant="ghost" className="font-bold">
           <Link to="/dashboard">
             <ArrowLeft className="size-4" /> Dashboard
           </Link>
         </Button>
 
-        <h1 className="mt-4 font-display text-4xl font-bold">My courses</h1>
+        <h1 className="mt-4 font-display text-3xl font-bold sm:text-4xl">My courses</h1>
 
         <form
           className="mt-6 flex flex-col gap-3 sm:flex-row"
@@ -99,10 +101,10 @@ function TutorCourses() {
               key={course.id}
               to="/course/$courseId"
               params={{ courseId: course.id }}
-              className="chunky flex items-center justify-between rounded-2xl border-2 bg-card p-5"
+              className="chunky grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border-2 bg-card p-4 sm:p-5"
             >
               <div>
-                <p className="font-display text-lg font-bold">{course.title}</p>
+                <p className="break-words font-display text-lg font-bold">{course.title}</p>
                 <p className="text-sm text-muted-foreground">
                   {formatPrice(course.price_cents, course.currency)}
                 </p>

@@ -149,8 +149,8 @@ function AuthPage() {
 
   if (sent) {
     return (
-      <div className="grid min-h-screen place-items-center confetti-bg px-6 py-12">
-        <div className="pop-in w-full max-w-md surface-card p-8 text-center">
+      <div className="grid min-h-screen place-items-center confetti-bg px-4 py-6 sm:px-6 sm:py-12">
+        <div className="pop-in w-full max-w-md surface-card p-5 sm:p-8 text-center">
           <MailCheck className="mx-auto size-12 text-primary" />
           <h1 className="mt-4 text-2xl font-bold">Check your inbox</h1>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -191,8 +191,8 @@ function AuthPage() {
   }
 
   return (
-    <div className="grid min-h-screen place-items-center confetti-bg px-6 py-12">
-      <div className="pop-in w-full max-w-md surface-card p-8">
+    <div className="grid min-h-screen place-items-center confetti-bg px-4 py-6 sm:px-6 sm:py-12">
+      <div className="pop-in w-full max-w-md surface-card p-5 sm:p-8">
         <p className="font-display text-2xl font-bold">
           Kọ́mì<span className="text-primary">nímọ̀</span>
         </p>

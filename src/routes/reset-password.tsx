@@ -19,6 +19,8 @@ export const Route = createFileRoute("/reset-password")({
       },
       { property: "og:title", content: "Set a new password — Kominimo" },
       { property: "og:description", content: "Choose a new password for your Kominimo tutor account." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: ResetPasswordPage,
@@ -89,8 +91,8 @@ function ResetPasswordPage() {
   };
 
   return (
-    <div className="grid min-h-screen place-items-center confetti-bg px-6 py-12">
-      <div className="pop-in w-full max-w-md surface-card p-8">
+    <div className="grid min-h-screen place-items-center confetti-bg px-4 py-6 sm:px-6 sm:py-12">
+      <div className="pop-in w-full max-w-md surface-card p-5 sm:p-8">
         <p className="font-display text-2xl font-bold">
           Kọ́mì<span className="text-primary">nímọ̀</span>
         </p>

@@ -147,8 +147,8 @@ function JoinPage() {
 
   if (kicked) {
     return (
-      <div className="grid min-h-screen place-items-center confetti-bg px-6">
-        <div className="surface-card max-w-md p-8 text-center">
+      <div className="grid min-h-screen place-items-center confetti-bg px-4 sm:px-6">
+        <div className="surface-card max-w-md p-5 sm:p-8 text-center">
           <h1 className="text-2xl font-bold">You've been removed</h1>
           <p className="mt-2 text-muted-foreground">
             Your tutor removed you from this session. Ask them for a new link if this was a mistake.
@@ -171,8 +171,8 @@ function JoinPage() {
 
   if (!quiz) {
     return (
-      <div className="grid min-h-screen place-items-center confetti-bg px-6">
-        <div className="surface-card max-w-md p-8 text-center">
+      <div className="grid min-h-screen place-items-center confetti-bg px-4 sm:px-6">
+        <div className="surface-card max-w-md p-5 sm:p-8 text-center">
           <h1 className="text-2xl font-bold">Quiz not found</h1>
           <p className="mt-2 text-muted-foreground">
             Double-check the code <span className="font-bold">{code}</span> with your tutor.
@@ -187,8 +187,8 @@ function JoinPage() {
 
   if (!participantId) {
     return (
-      <div className="grid min-h-screen place-items-center confetti-bg px-6 py-12">
-        <div className="pop-in w-full max-w-md surface-card p-8">
+      <div className="grid min-h-screen place-items-center confetti-bg px-4 py-6 sm:px-6 sm:py-12">
+        <div className="pop-in w-full max-w-md surface-card p-5 sm:p-8">
           <p className="text-sm font-bold uppercase tracking-widest text-primary">You're invited</p>
           <h1 className="mt-2 text-3xl font-bold">{quiz.title}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -221,7 +221,7 @@ function JoinPage() {
             <Button
               type="submit"
               disabled={joining || quiz.status === "draft" || quiz.status === "ended"}
-              className="chunky h-12 w-full rounded-xl text-base font-bold"
+              className="chunky h-auto min-h-12 w-full whitespace-normal rounded-xl py-3 text-base font-bold"
             >
               {quiz.status === "draft"
                 ? "Waiting for tutor to open the lobby"
@@ -258,8 +258,8 @@ function Lobby({ quiz }: { quiz: Quiz }) {
   }, [quiz.id]);
 
   return (
-    <div className="grid min-h-screen place-items-center confetti-bg px-6 py-12">
-      <div className="pop-in w-full max-w-xl surface-card p-8 text-center">
+    <div className="grid min-h-screen place-items-center confetti-bg px-4 py-6 sm:px-6 sm:py-12">
+      <div className="pop-in w-full max-w-xl surface-card p-5 sm:p-8 text-center">
         <span className="inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-1 text-sm font-bold text-secondary-foreground">
           <Users className="size-4" /> {board.length} in the lobby
         </span>
@@ -280,7 +280,7 @@ function Lobby({ quiz }: { quiz: Quiz }) {
           {board.map((person) => (
             <span
               key={person.id}
-              className="rounded-full border-2 border-border bg-card px-3 py-1 text-sm font-bold"
+              className="max-w-full break-words rounded-full border-2 border-border bg-card px-3 py-1 text-sm font-bold"
             >
               {person.name}
             </span>
@@ -467,8 +467,8 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
 
   if (!current) {
     return (
-      <div className="grid min-h-screen place-items-center confetti-bg px-6">
-        <div className="surface-card max-w-md p-8 text-center">
+      <div className="grid min-h-screen place-items-center confetti-bg px-4 sm:px-6">
+        <div className="surface-card max-w-md p-5 sm:p-8 text-center">
           <h1 className="text-2xl font-bold">No questions yet</h1>
           <p className="mt-2 text-muted-foreground">Your tutor hasn't added any questions.</p>
         </div>
@@ -479,7 +479,7 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
   const progress = ((index + 1) / questions.length) * 100;
 
   return (
-    <div className="min-h-screen confetti-bg px-6 py-10">
+    <div className="min-h-screen confetti-bg px-4 py-5 sm:px-6 sm:py-10">
       <div className="pop-in mx-auto w-full max-w-2xl">
         <div className="flex items-center justify-between text-sm font-bold">
           <span>
@@ -507,7 +507,7 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
           </div>
         )}
 
-        <div className="mt-6 surface-card p-8">
+        <div className="mt-6 surface-card p-5 sm:p-8">
           <h1 className="text-2xl font-bold leading-snug">{current.prompt}</h1>
 
           {submitted ? (
@@ -593,7 +593,7 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
                     placeholder="Type your answer…"
                     className="h-14 rounded-xl border-2 text-lg"
                   />
-                  <Button type="submit" className="chunky h-12 w-full rounded-xl text-base font-bold">
+                  <Button type="submit" className="chunky h-auto min-h-12 w-full whitespace-normal rounded-xl py-3 text-base font-bold">
                     Submit answer
                   </Button>
                 </form>
@@ -624,9 +624,9 @@ function Results({ quiz, participantId }: { quiz: Quiz; participantId: string })
   const rank = board.findIndex((row) => row.id === participantId) + 1;
 
   return (
-    <div className="min-h-screen confetti-bg px-6 py-12">
+    <div className="min-h-screen confetti-bg px-4 py-6 sm:px-6 sm:py-12">
       <div className="pop-in mx-auto w-full max-w-xl">
-        <div className="surface-card p-8 text-center">
+        <div className="surface-card p-5 sm:p-8 text-center">
           <PartyPopper className="mx-auto size-10 text-primary" />
           <h1 className="mt-3 text-3xl font-bold">All done!</h1>
           {me && (
@@ -644,17 +644,17 @@ function Results({ quiz, participantId }: { quiz: Quiz; participantId: string })
           {board.map((row, position) => (
             <div
               key={row.id}
-              className={`surface-card flex items-center justify-between px-5 py-3 ${
+              className={`surface-card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-3 sm:px-5 ${
                 row.id === participantId ? "border-primary" : ""
               }`}
             >
-              <div className="flex items-center gap-3">
-                <span className="grid size-9 place-items-center rounded-full bg-muted font-display font-bold">
+              <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted font-display font-bold">
                   {MEDAL[position] ?? position + 1}
                 </span>
-                <p className="font-bold">{row.name}</p>
+                <p className="min-w-0 break-words font-bold">{row.name}</p>
               </div>
-              <div className="flex items-center gap-4 text-sm font-bold">
+              <div className="flex shrink-0 flex-col items-end gap-1 text-sm font-bold sm:flex-row sm:gap-4">
                 <span className="text-primary">{row.score}</span>
                 <span className="text-muted-foreground">{formatMs(row.total_time_ms)}</span>
               </div>

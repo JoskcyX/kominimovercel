@@ -50,9 +50,9 @@ export function ReferralDashboard() {
   const paid = summary.data?.earnings_paid_cents ?? 0;
 
   return (
-    <section className="surface-card space-y-5 p-6">
-      <div className="flex items-center gap-3">
-        <span className="grid size-10 place-items-center rounded-full bg-secondary text-secondary-foreground">
+    <section className="surface-card min-w-0 space-y-5 p-4 sm:p-6">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary text-secondary-foreground">
           <Gift className="size-5" />
         </span>
         <div>
@@ -69,7 +69,7 @@ export function ReferralDashboard() {
           Your referral link
         </p>
         <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-          <code className="flex-1 truncate rounded-xl border-2 border-border bg-card px-3 py-2 text-sm font-bold">
+          <code className="min-w-0 flex-1 truncate rounded-xl border-2 border-border bg-card px-3 py-2 text-sm font-bold">
             {shareUrl || "Loading…"}
           </code>
           <Button
@@ -119,10 +119,10 @@ export function ReferralDashboard() {
           {list.data?.map((row) => (
             <div
               key={row.display_name + row.joined_at}
-              className="flex items-center justify-between rounded-xl border-2 border-border bg-card px-4 py-3"
+              className="grid min-w-0 gap-2 rounded-xl border-2 border-border bg-card px-3 py-3 sm:flex sm:items-center sm:justify-between sm:px-4"
             >
               <div>
-                <p className="font-bold">{row.display_name || "Tutor"}</p>
+                <p className="break-words font-bold">{row.display_name || "Tutor"}</p>
                 <p className="text-xs text-muted-foreground">
                   Joined {new Date(row.joined_at).toLocaleDateString()}
                 </p>

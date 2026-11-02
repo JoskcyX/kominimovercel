@@ -119,7 +119,7 @@ function CoursePage() {
 
   return (
     <div className="min-h-screen confetti-bg">
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
+      <header className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-6">
         <Link to="/" className="font-display text-2xl font-bold">
           Kọ́mì<span className="text-primary">nímọ̀</span>
         </Link>
@@ -128,9 +128,9 @@ function CoursePage() {
         </Button>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 pb-24">
-        <div className="chunky rounded-2xl border-2 bg-card p-8">
-          <h1 className="font-display text-4xl font-bold">{course.data.title}</h1>
+      <main className="mx-auto max-w-5xl px-4 pb-24 sm:px-6">
+        <div className="chunky rounded-2xl border-2 bg-card p-4 sm:p-8">
+          <h1 className="break-words font-display text-3xl font-bold sm:text-4xl">{course.data.title}</h1>
           <p className="mt-3 text-lg text-muted-foreground">{course.data.summary}</p>
 
           <div className="mt-6 flex flex-wrap items-center gap-4">
@@ -163,17 +163,17 @@ function CoursePage() {
               const locked = isPaid && !hasAccess;
               const video = lesson.video_url ? embedUrl(lesson.video_url) : null;
               return (
-                <article key={lesson.id} className="chunky rounded-2xl border-2 bg-card p-6">
+                <article key={lesson.id} className="chunky rounded-2xl border-2 bg-card p-4 sm:p-6">
                   <div className="flex items-center gap-3">
                     {lesson.kind === "video" ? (
-                      <PlayCircle className="size-5 text-primary" />
+                      <PlayCircle className="size-5 shrink-0 text-primary" />
                     ) : (
-                      <FileText className="size-5 text-primary" />
+                      <FileText className="size-5 shrink-0 text-primary" />
                     )}
-                    <h3 className="font-display text-lg font-bold">
+                    <h3 className="min-w-0 break-words font-display text-lg font-bold">
                       {index + 1}. {lesson.title}
                     </h3>
-                    {locked && <Lock className="ml-auto size-4 text-muted-foreground" />}
+                    {locked && <Lock className="ml-auto size-4 shrink-0 text-muted-foreground" />}
                   </div>
 
                   {locked ? (

@@ -165,7 +165,7 @@ function QuizControl() {
         onEnd={() => setStatus.mutate("ended")}
         onChanged={() => queryClient.invalidateQueries({ queryKey: ["quiz", quizId] })}
       />}
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
+      <header className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-4 sm:px-6 sm:py-6">
         <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">
           <Link to="/dashboard">
             <ArrowLeft className="size-4" /> Dashboard
@@ -176,8 +176,8 @@ function QuizControl() {
         </span>
       </header>
 
-      <main className="mx-auto max-w-5xl space-y-8 px-6 pb-24">
-        <section className="surface-card p-6">
+      <main className="mx-auto max-w-5xl space-y-6 px-4 pb-24 sm:space-y-8 sm:px-6">
+        <section className="surface-card p-4 sm:p-6">
           <TitleEditor quizId={quizId} title={quiz.data?.title ?? ""} />
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <div className="rounded-xl border-2 border-dashed border-secondary p-4">
@@ -202,22 +202,22 @@ function QuizControl() {
             <div className="rounded-xl border-2 border-border p-4">
               <p className="text-sm font-bold text-muted-foreground">Session control</p>
               <p className="mt-1 text-lg font-bold capitalize">{status.replace("_", " ")}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => setPresenting(true)} className="chunky rounded-xl border-2 font-bold">
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                <Button variant="outline" onClick={() => setPresenting(true)} className="chunky min-w-0 rounded-xl border-2 font-bold">
                   <Monitor className="size-4" /> Live display
                 </Button>
                 <Button
                   variant="secondary"
                   disabled={status === "lobby"}
                   onClick={() => setStatus.mutate("lobby")}
-                  className="chunky rounded-xl font-bold"
+                  className="chunky min-w-0 rounded-xl font-bold"
                 >
                   <Users className="size-4" /> Open lobby
                 </Button>
                 <Button
                   disabled={status === "live" || (questions.data?.length ?? 0) === 0}
                   onClick={() => setStatus.mutate("live")}
-                  className="chunky rounded-xl font-bold"
+                  className="chunky min-w-0 rounded-xl font-bold"
                 >
                   <Play className="size-4" /> Start quiz
                 </Button>
@@ -225,7 +225,7 @@ function QuizControl() {
                   variant="outline"
                   disabled={status === "ended"}
                   onClick={() => setStatus.mutate("ended")}
-                  className="chunky rounded-xl border-2 font-bold"
+                  className="chunky min-w-0 rounded-xl border-2 font-bold"
                 >
                   <Square className="size-4" /> End
                 </Button>
@@ -253,12 +253,12 @@ function QuizControl() {
 
         <section>
 
-          <div className="flex items-center justify-between">
+          <div className="grid gap-3 sm:flex sm:items-center sm:justify-between">
             <h2 className="text-2xl font-bold">
               Questions{" "}
               <span className="text-muted-foreground">({questions.data?.length ?? 0})</span>
             </h2>
-            <Button onClick={() => addQuestion.mutate()} className="chunky rounded-xl font-bold">
+            <Button onClick={() => addQuestion.mutate()} className="chunky min-w-0 rounded-xl font-bold">
               <Plus className="size-4" /> Add question
             </Button>
           </div>
@@ -288,18 +288,18 @@ function QuizControl() {
             {participants.data?.map((person, index) => (
               <div
                 key={person.id}
-                className="surface-card flex flex-wrap items-center justify-between gap-3 px-5 py-3"
+                className="surface-card grid min-w-0 gap-3 px-4 py-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between sm:px-5"
               >
-                <div className="flex items-center gap-3">
-                  <span className="grid size-9 place-items-center rounded-full bg-muted font-display font-bold">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted font-display font-bold">
                     {MEDAL[index] ?? index + 1}
                   </span>
                   <div>
-                    <p className="font-bold">{person.name}</p>
+                    <p className="break-words font-bold">{person.name}</p>
                     <p className="text-xs text-muted-foreground">{person.phone}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-5 text-sm font-bold">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-bold">
                   <span className="text-primary">{person.score} correct</span>
                   <span className="text-muted-foreground">{formatMs(person.total_time_ms)}</span>
                   <span
@@ -422,8 +422,8 @@ function QuestionCard({
   };
 
   return (
-    <div className="surface-card space-y-4 p-5">
-      <div className="flex items-center justify-between gap-3">
+    <div className="surface-card min-w-0 space-y-4 p-4 sm:p-5">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 sm:flex">
         <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary font-display font-bold text-primary-foreground">
           {index + 1}
         </span>
@@ -438,7 +438,7 @@ function QuestionCard({
             })
           }
         >
-          <SelectTrigger className="h-10 w-48 rounded-xl border-2 font-bold">
+          <SelectTrigger className="h-11 w-full min-w-0 rounded-xl border-2 font-bold sm:w-48">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -447,7 +447,7 @@ function QuestionCard({
             <SelectItem value="short_answer">Short answer</SelectItem>
           </SelectContent>
         </Select>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="col-span-2 flex items-center justify-end gap-2 sm:ml-auto">
           <Label htmlFor={`t-${question.id}`} className="text-xs text-muted-foreground">
             Seconds
           </Label>
@@ -534,7 +534,7 @@ function QuestionCard({
         </div>
       )}
 
-      <Button onClick={save} disabled={saving} className="chunky rounded-xl font-bold">
+      <Button onClick={save} disabled={saving} className="chunky min-w-0 rounded-xl font-bold">
         {saving ? "Saving…" : "Save question"}
       </Button>
     </div>

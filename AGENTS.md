@@ -14,3 +14,4 @@
 - Quiz projection and student screens share skip_signal (reset to zero on start) and database-maintained deadlines; automatic advancement uses an atomic deadline-checked RPC so clients cannot advance early or twice. Keep projection separate from editing and never project contact details.
 - Destructive confirmations use the shared ConfirmAction dialog; keep it open on failure and disable repeated submissions while pending.
 - Mobile layouts use shrinking text columns and fixed action columns, stacking toolbars and date fields below sm; shared CSS supplies touch targets and non-zooming form text without hiding overflow.
+- Live attendance history is owned by database session lifecycle triggers and heartbeat snapshots, so rejoining does not create a new session and manual or idle closure preserves immutable dated records independently of membership deletion.

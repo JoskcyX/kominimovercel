@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Check, Copy, Download, Eye, Plus, Radio, Trash2, X } from "lucide-react";
 import { StudentPreview } from "@/components/StudentPreview";
 import { ClassMaterials } from "@/components/ClassMaterials";
+import { AttendanceHistory } from "@/components/AttendanceHistory";
 
 import { Button } from "@/components/ui/button";
 import { ConfirmAction } from "@/components/ConfirmAction";
@@ -372,6 +373,8 @@ function ClassRoom() {
                 );
               })}
             </div>
+
+            <AttendanceHistory classId={classId} live={!!cls.data.live_room_name} />
 
             <div className="surface-card mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-4">
               <div>

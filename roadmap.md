@@ -1,5 +1,7 @@
 # EDxKa Roadmap
 
+- [ ] Preserve attendance separately for each live session; show expandable dated records with participant counts and CSV/Excel downloads.
+
 - [x] Replace remaining browser confirmations with custom in-app confirmation boxes.
 - [x] Automatically advance timed quiz questions through the shared cursor; verify tutor and student stay synchronized.
 

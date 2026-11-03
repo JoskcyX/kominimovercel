@@ -218,6 +218,94 @@ export type Database = {
           },
         ]
       }
+      class_session_attendance: {
+        Row: {
+          id: string
+          identifier: string
+          joined_at: string
+          last_seen_at: string | null
+          left_at: string | null
+          member_id: string
+          name: string
+          present_seconds: number
+          session_id: string
+        }
+        Insert: {
+          id?: string
+          identifier?: string
+          joined_at: string
+          last_seen_at?: string | null
+          left_at?: string | null
+          member_id: string
+          name: string
+          present_seconds?: number
+          session_id: string
+        }
+        Update: {
+          id?: string
+          identifier?: string
+          joined_at?: string
+          last_seen_at?: string | null
+          left_at?: string | null
+          member_id?: string
+          name?: string
+          present_seconds?: number
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_session_attendance_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "class_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_sessions: {
+        Row: {
+          attendance_threshold: number
+          class_id: string
+          ended_at: string | null
+          id: string
+          id_label: string
+          join_code: string
+          started_at: string
+          subject: string
+          title: string
+        }
+        Insert: {
+          attendance_threshold?: number
+          class_id: string
+          ended_at?: string | null
+          id?: string
+          id_label?: string
+          join_code: string
+          started_at: string
+          subject?: string
+          title: string
+        }
+        Update: {
+          attendance_threshold?: number
+          class_id?: string
+          ended_at?: string | null
+          id?: string
+          id_label?: string
+          join_code?: string
+          started_at?: string
+          subject?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_sessions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           admit_mode: string

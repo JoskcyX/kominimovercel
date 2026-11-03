@@ -59,11 +59,7 @@ export const startLiveClass = createServerFn({ method: "POST" })
         .update({ live_room_name: name, live_room_url: url, live_started_at: new Date().toISOString(), session_started_at: new Date().toISOString(), session_ended_at: null, live_empty_since: null })
         .eq("id", cls.id);
       if (error) throw error;
-      // New session: everyone's attendance time starts from zero.
-      await context.supabase
-        .from("class_members")
-        .update({ present_seconds: 0, last_seen_at: null, left_at: null })
-        .eq("class_id", cls.id);
+      // The class-session trigger atomically creates history and resets current attendance.
     }
     const { data: prof } = await context.supabase.from("profiles").select("display_name").eq("id", context.userId).maybeSingle();
     return { url: `${url}?t=${await token(name, prof?.display_name || "Tutor", true)}` };
@@ -80,10 +76,11 @@ export const endLiveClass = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!cls || cls.tutor_id !== context.userId) throw new Error("Not your class");
     if (cls.live_room_name) await daily(`/rooms/${cls.live_room_name}`, { method: "DELETE" });
-    await context.supabase
+    const { error } = await context.supabase
       .from("classes")
       .update({ live_room_name: null, live_room_url: null, live_started_at: null, session_ended_at: new Date().toISOString(), live_empty_since: null })
       .eq("id", cls.id);
+    if (error) throw error;
     return { ok: true };
   });
 

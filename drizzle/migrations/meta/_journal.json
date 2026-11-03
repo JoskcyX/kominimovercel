@@ -113,6 +113,13 @@
       "when": 1793405013114,
       "tag": "0015_shared_quiz_question_timer",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793674510578,
+      "tag": "0016_class_session_attendance_history",
+      "breakpoints": true
     }
   ]
 }

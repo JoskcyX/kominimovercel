@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { withinReconnectGrace } from "@/lib/live-connection";
 
 export function DailyConnection({ url, audioOnly, onLeave, onConnectionChange }: {
-  url: string; audioOnly: boolean; onLeave: () => void; onConnectionChange?: (connected: boolean) => void;
+  url: string; audioOnly: boolean; onLeave: () => void; onConnectionChange?: ((connected: boolean) => void) | undefined;
 }) {
   const mount = useRef<HTMLDivElement>(null);
   const call = useRef<DailyCall | null>(null);
@@ -20,10 +20,14 @@ export function DailyConnection({ url, audioOnly, onLeave, onConnectionChange }:
     let joining = false;
     let hasJoined = false;
     let fatal = false;
+    let graceTimeout: ReturnType<typeof setTimeout> | undefined;
     const connection = (connected: boolean) => callbacks.current.onConnectionChange?.(connected);
     const interrupted = () => {
       if (disposed) return;
-      interruptedAt ??= Date.now();
+      if (interruptedAt === null) {
+        interruptedAt = Date.now();
+        graceTimeout = setTimeout(() => callbacks.current.onLeave(), 120_000);
+      }
       setStatus(navigator.onLine ? "Reconnecting…" : "Offline · reconnecting…");
       connection(false);
     };
@@ -33,6 +37,7 @@ export function DailyConnection({ url, audioOnly, onLeave, onConnectionChange }:
       if (instance.meetingState() === "joined-meeting" && !fatal) return;
       joining = true;
       try {
+        if (fatal && instance.meetingState() === "joined-meeting") await instance.leave();
         const parsed = new URL(url);
         const token = parsed.searchParams.get("t");
         parsed.searchParams.delete("t");
@@ -40,7 +45,7 @@ export function DailyConnection({ url, audioOnly, onLeave, onConnectionChange }:
       } catch { interrupted(); }
       finally { joining = false; }
     };
-    retry.current = () => { if (interruptedAt !== null) void join(); };
+    retry.current = () => { if (interruptedAt !== null) { fatal = true; void join(); } };
     void import("@daily-co/daily-js").then(({ default: Daily }) => {
       if (disposed || !mount.current) return;
       const instance = Daily.createFrame(mount.current, { showLeaveButton: true });
@@ -50,12 +55,14 @@ export function DailyConnection({ url, audioOnly, onLeave, onConnectionChange }:
       instance.on("joined-meeting", () => {
         if (disposed) return;
         hasJoined = true; fatal = false; interruptedAt = null;
+        clearTimeout(graceTimeout);
         setStatus("Connected"); connection(true);
       });
       instance.on("network-connection", (event) => {
         if (event?.event === "interrupted") interrupted();
-        if (event?.event === "connected" && instance.meetingState() === "joined-meeting") {
+        if (event?.event === "connected" && event.type !== "signaling" && instance.meetingState() === "joined-meeting") {
           interruptedAt = null; fatal = false; setStatus("Connected"); connection(true);
+          clearTimeout(graceTimeout);
         }
       });
       instance.on("error", () => { fatal = true; interrupted(); });
@@ -75,11 +82,11 @@ export function DailyConnection({ url, audioOnly, onLeave, onConnectionChange }:
     document.addEventListener("visibilitychange", visible);
     const timer = setInterval(() => {
       if (interruptedAt === null) return;
-      if (!withinReconnectGrace(interruptedAt, Date.now())) { callbacks.current.onLeave(); return; }
+      if (!withinReconnectGrace(interruptedAt, Date.now())) return;
       void join();
     }, 3000);
     return () => {
-      disposed = true; clearInterval(timer);
+      disposed = true; clearInterval(timer); clearTimeout(graceTimeout);
       window.removeEventListener("offline", offline);
       window.removeEventListener("online", recover);
       document.removeEventListener("visibilitychange", visible);

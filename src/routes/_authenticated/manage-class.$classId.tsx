@@ -197,7 +197,6 @@ function ClassRoom() {
   if (cls.isLoading) return <div className="p-10 text-muted-foreground">Loading…</div>;
   if (!cls.data) return <div className="p-10">Class not found.</div>;
 
-  const idName = cls.data.id_label === "matric" ? "Matric number" : "Phone number";
   const link = typeof window !== "undefined" ? `${window.location.origin}/class/${cls.data.join_code}` : "";
   const pending = members.data?.filter((m) => m.status === "pending") ?? [];
   const approved = members.data?.filter((m) => m.status === "approved") ?? [];
@@ -330,8 +329,8 @@ function ClassRoom() {
             </div>
             {(roster.data?.length ?? 0) > 0 && (
               <div className="mt-3 grid gap-1">
-                <p className="text-sm font-bold">{roster.data!.filter((r) => rosterStatus(r.identifier) === "present").length} of {roster.data!.length} present</p>
-                {roster.data!.map((r) => {
+                <p className="text-sm font-bold">{roster.data?.filter((r) => rosterStatus(r.identifier) === "present").length} of {roster.data?.length} present</p>
+                {roster.data?.map((r) => {
                   const st = rosterStatus(r.identifier);
                   return (
                     <div key={r.id} className="surface-card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2 text-sm">

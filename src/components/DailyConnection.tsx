@@ -41,7 +41,7 @@ export function DailyConnection({ url, audioOnly, onLeave, onConnectionChange }:
       } catch { interrupted(); }
       finally { joining = false; }
     };
-    retry.current = () => { if (interruptedAt !== null) void join(); };
+    retry.current = () => { if (interruptedAt !== null) { fatal = true; void join(); } };
     void import("@daily-co/daily-js").then(({ default: Daily }) => {
       if (disposed || !mount.current) return;
       const instance = Daily.createFrame(mount.current, { showLeaveButton: true });

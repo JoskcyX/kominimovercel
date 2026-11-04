@@ -13,4 +13,9 @@ describe("separate live session attendance", () => {
   it("does not carry participants into another session", () => {
     expect(sessionAttendanceRows({ ...session, started_at: "2026-11-04T10:00:00Z", ended_at: "2026-11-04T11:00:00Z" }, [])).toEqual([]);
   });
+  it("shows a returning student only once despite identifier formatting", () => {
+    const rows = sessionAttendanceRows(session, [participant, { ...participant, identifier: "mat1", present_seconds: 10 }]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.percent).toBe(75);
+  });
 });

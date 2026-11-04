@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, ChevronDown, ChevronUp, Download } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronUp, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { buildAttendanceCsv, buildAttendanceXlsx, downloadBlob } from "@/lib/attendance";
 import { sessionAttendanceRows } from "@/lib/session-attendance";
+import { isRecentlyPresent } from "@/lib/live-connection";
 
 type Session = Database["public"]["Tables"]["class_sessions"]["Row"];
+type Member = Database["public"]["Tables"]["class_members"]["Row"];
+type Removal = { id: string; name: string };
 
-function SessionRecord({ session }: { session: Session }) {
+function SessionRecord({ session, members, onRemove }: { session: Session; members: Member[]; onRemove: (member: Removal) => void }) {
   const [open, setOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const participants = useQuery({
@@ -54,16 +57,20 @@ function SessionRecord({ session }: { session: Session }) {
       </div>
       {open && <div className="border-t border-border px-4 py-3">
         {participants.isError ? <Button variant="outline" onClick={() => participants.refetch()}>Try again</Button> : rows.length === 0 ? <p className="text-sm text-muted-foreground">{participants.isPending ? "Loading…" : "No students joined this live class."}</p> :
-          <ul className="divide-y divide-border">{rows.map((row, i) => <li key={participants.data?.[i]?.id ?? i} className="grid min-w-0 gap-1 py-3">
-            <p className="break-words font-bold">{row.name}</p>
-            <p className="break-words text-sm text-muted-foreground">{row.identifier} · {row.status} · {row.minutes} min ({row.percent}%)</p>
+          <ul className="divide-y divide-border">{rows.map((row) => <li key={row.identifier || row.name} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 py-3">
+            <div className="min-w-0">
+              <p className="break-words font-bold">{row.name}</p>
+              <p className="break-words text-sm text-muted-foreground">{row.identifier} · {row.status} · {row.minutes} min ({row.percent}%)</p>
+              <p className="text-xs text-muted-foreground">Joined {row.joinedAt ? new Date(row.joinedAt).toLocaleTimeString() : "—"}{!session.ended_at ? ` · ${isRecentlyPresent(row.lastSeenAt, row.leftAt) ? "In class / reconnecting" : "Not in live class"}` : row.leftAt ? ` · Left ${new Date(row.leftAt).toLocaleTimeString()}` : ""}</p>
+            </div>
+            {(() => { const member = members.find((m) => m.phone === row.identifier); return member ? <Button size="icon" variant="ghost" aria-label={`Remove ${row.name}`} onClick={() => onRemove(member)}><Trash2 className="size-4" /></Button> : null; })()}
           </li>)}</ul>}
       </div>}
     </article>
   );
 }
 
-export function AttendanceHistory({ classId, live }: { classId: string; live: boolean }) {
+export function AttendanceHistory({ classId, live, members = [], onRemove = () => {} }: { classId: string; live: boolean; members?: Member[]; onRemove?: (member: Removal) => void }) {
   const sessions = useQuery({
     queryKey: ["class", classId, "sessions"],
     refetchInterval: live ? 15000 : false,
@@ -76,7 +83,7 @@ export function AttendanceHistory({ classId, live }: { classId: string; live: bo
   return <section className="mt-8 min-w-0">
     <h2 className="text-xl font-bold sm:text-2xl">Attendance history</h2>
     <div className="mt-3 grid gap-3">
-      {sessions.isPending ? <p className="text-sm text-muted-foreground">Loading attendance…</p> : sessions.isError ? <Button variant="outline" onClick={() => sessions.refetch()}>Retry attendance</Button> : !sessions.data.length ? <p className="text-sm text-muted-foreground">No live classes held yet.</p> : sessions.data.map((s) => <SessionRecord key={s.id} session={s} />)}
+      {sessions.isPending ? <p className="text-sm text-muted-foreground">Loading attendance…</p> : sessions.isError ? <Button variant="outline" onClick={() => sessions.refetch()}>Retry attendance</Button> : !sessions.data.length ? <p className="text-sm text-muted-foreground">No live classes held yet.</p> : sessions.data.map((s) => <SessionRecord key={s.id} session={s} members={members} onRemove={onRemove} />)}
     </div>
   </section>;
 }

@@ -13,13 +13,14 @@ export async function daily(path: string, init: RequestInit = {}) {
   return res.status === 404 ? null : res.json();
 }
 
-async function token(room: string, userName: string, owner: boolean) {
+async function token(room: string, userName: string, owner: boolean, userId: string) {
   const t = await daily("/meeting-tokens", {
     method: "POST",
     body: JSON.stringify({
       properties: {
         room_name: room,
         user_name: userName,
+        user_id: userId,
         is_owner: owner,
         start_video_off: !owner,
         start_audio_off: !owner,
@@ -62,7 +63,7 @@ export const startLiveClass = createServerFn({ method: "POST" })
       // The class-session trigger atomically creates history and resets current attendance.
     }
     const { data: prof } = await context.supabase.from("profiles").select("display_name").eq("id", context.userId).maybeSingle();
-    return { url: `${url}?t=${await token(name, prof?.display_name || "Tutor", true)}` };
+    return { url: `${url}?t=${await token(name, prof?.display_name || "Tutor", true, context.userId)}` };
   });
 
 export const endLiveClass = createServerFn({ method: "POST" })
@@ -103,5 +104,5 @@ export const joinLiveClass = createServerFn({ method: "POST" })
     if (!m || m.status !== "approved") throw new Error("Not approved");
     const { data: c } = await supabaseAdmin.from("classes").select("live_room_name, live_room_url").eq("id", m.class_id).maybeSingle();
     if (!c?.live_room_name || !c.live_room_url) throw new Error("Class isn't live");
-    return { url: `${c.live_room_url}?t=${await token(c.live_room_name, m.name, false)}` };
+    return { url: `${c.live_room_url}?t=${await token(c.live_room_name, m.name, false, data.memberId)}` };
   });

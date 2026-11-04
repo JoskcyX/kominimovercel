@@ -70,15 +70,16 @@ function ClassPage() {
   const joinFn = useServerFn(joinLiveClass);
   const [live, setLive] = useState(false);
   const [roomUrl, setRoomUrl] = useState<string | null>(null);
+  const [connected, setConnected] = useState(false);
   useEffect(() => {
-    if (!roomUrl || !memberId) return;
+    if (!roomUrl || !memberId || !connected) return;
     const beat = (present: boolean) => { supabase.rpc("live_heartbeat", { _member_id: memberId, _present: present }).then(() => {}); };
     beat(true);
     const t = setInterval(() => beat(true), 15000);
-    const bye = () => beat(false);
+    const bye = (event: PageTransitionEvent) => { if (!event.persisted) beat(false); };
     window.addEventListener("pagehide", bye);
-    return () => { clearInterval(t); window.removeEventListener("pagehide", bye); beat(false); };
-  }, [roomUrl, memberId]);
+    return () => { clearInterval(t); window.removeEventListener("pagehide", bye); };
+  }, [roomUrl, memberId, connected]);
   const joinLive = async () => {
     if (!memberId || !info) return;
     try {
@@ -89,13 +90,16 @@ function ClassPage() {
     catch { toast.error("Could not join the live class"); }
   };
   const leaveLive = () => {
+    if (memberId) void supabase.rpc("live_heartbeat", { _member_id: memberId, _present: false });
+    setConnected(false);
     setRoomUrl(null);
     localStorage.removeItem("edxka_class_live");
   };
 
   const refresh = useCallback(async () => {
     if (!memberId) return;
-    const { data } = await supabase.rpc("get_class_membership", { _member_id: memberId });
+    const { data, error } = await supabase.rpc("get_class_membership", { _member_id: memberId });
+    if (error) return;
     const row = data?.[0];
     if (!row) { localStorage.removeItem(key); setMemberId(null); return; }
     setStatus(row.status);
@@ -168,7 +172,7 @@ function ClassPage() {
 
       {memberId && status === "approved" && (
         <div className="mt-8 grid gap-8">
-          {roomUrl && <LiveRoom url={roomUrl} onLeave={() => setRoomUrl(null)} />}
+          {roomUrl && <LiveRoom url={roomUrl} onLeave={leaveLive} onConnectionChange={setConnected} />}
           <Presentation memberId={memberId} />
           {live && (
             <Button variant="secondary" onClick={joinLive} className="surface-card grid h-auto grid-cols-[minmax(0,1fr)_auto] gap-3 whitespace-normal border-secondary bg-secondary p-4 text-left text-secondary-foreground sm:p-6">

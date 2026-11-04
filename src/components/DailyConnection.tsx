@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { withinReconnectGrace } from "@/lib/live-connection";
 
 export function DailyConnection({ url, audioOnly, onLeave, onConnectionChange }: {
-  url: string; audioOnly: boolean; onLeave: () => void; onConnectionChange?: (connected: boolean) => void;
+  url: string; audioOnly: boolean; onLeave: () => void; onConnectionChange?: ((connected: boolean) => void) | undefined;
 }) {
   const mount = useRef<HTMLDivElement>(null);
   const call = useRef<DailyCall | null>(null);
@@ -33,6 +33,7 @@ export function DailyConnection({ url, audioOnly, onLeave, onConnectionChange }:
       if (instance.meetingState() === "joined-meeting" && !fatal) return;
       joining = true;
       try {
+        if (fatal && instance.meetingState() === "joined-meeting") await instance.leave();
         const parsed = new URL(url);
         const token = parsed.searchParams.get("t");
         parsed.searchParams.delete("t");
@@ -54,7 +55,7 @@ export function DailyConnection({ url, audioOnly, onLeave, onConnectionChange }:
       });
       instance.on("network-connection", (event) => {
         if (event?.event === "interrupted") interrupted();
-        if (event?.event === "connected" && instance.meetingState() === "joined-meeting") {
+        if (event?.event === "connected" && event.type !== "signaling" && instance.meetingState() === "joined-meeting") {
           interruptedAt = null; fatal = false; setStatus("Connected"); connection(true);
         }
       });

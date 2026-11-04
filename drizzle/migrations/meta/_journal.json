@@ -120,6 +120,13 @@
       "when": 1793674510578,
       "tag": "0016_class_session_attendance_history",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793775338773,
+      "tag": "0017_preserve_returning_class_admission",
+      "breakpoints": true
     }
   ]
 }

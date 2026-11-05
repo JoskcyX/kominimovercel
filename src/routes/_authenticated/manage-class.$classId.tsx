@@ -7,6 +7,7 @@ import { ArrowLeft, Check, Copy, Eye, Plus, Radio, X } from "lucide-react";
 import { StudentPreview } from "@/components/StudentPreview";
 import { ClassMaterials } from "@/components/ClassMaterials";
 import { AttendanceHistory } from "@/components/AttendanceHistory";
+import { ClassRepSettings } from "@/components/ClassRepSettings";
 
 import { Button } from "@/components/ui/button";
 import { ConfirmAction } from "@/components/ConfirmAction";
@@ -188,11 +189,12 @@ function ClassRoom() {
   useEffect(() => {
     if (!members.data) return;
     const ids = members.data.filter((m) => m.status === "pending");
-    if (seenPending.current) {
+    const repSet = !!cls.data?.rep_member_id;
+    if (seenPending.current && !repSet) {
       for (const m of ids) if (!seenPending.current.has(m.id)) toast(`${m.name} wants to join the class`, { description: "Let them in from the join requests." });
     }
     seenPending.current = new Set(ids.map((m) => m.id));
-  }, [members.data]);
+  }, [members.data, cls.data?.rep_member_id]);
 
   if (cls.isLoading) return <div className="p-10 text-muted-foreground">Loading…</div>;
   if (!cls.data) return <div className="p-10">Class not found.</div>;
@@ -231,7 +233,7 @@ function ClassRoom() {
   return (
     <div className="min-h-screen confetti-bg">
       <ConfirmAction open={!!removing} onOpenChange={(value) => { if (!value) setRemoving(null); }} title="Remove student?" description={`${removing?.name ?? "This student"} will be removed from this class and lose access to its materials.`} label="Remove student" pending={removeMember.isPending} onConfirm={() => { if (removing) removeMember.mutate(removing.id); }} />
-      {roomUrl && <LiveRoom url={roomUrl} onLeave={() => setRoomUrl(null)} leaveLabel="Close" overlay={pending.length ? liveNotices : null} />}
+      {roomUrl && <LiveRoom url={roomUrl} onLeave={() => setRoomUrl(null)} leaveLabel="Close" overlay={pending.length && !cls.data.rep_member_id ? liveNotices : null} />}
       <main className="mx-auto max-w-5xl px-4 py-5 pb-24 sm:px-6 sm:py-8">
         <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm font-bold text-muted-foreground"><ArrowLeft className="size-4" /> Dashboard</Link>
         <h1 className="mt-3 break-words text-2xl font-bold sm:text-4xl">{cls.data.title}</h1>
@@ -297,6 +299,8 @@ function ClassRoom() {
                 of the live class
               </label>
             </div>
+
+            <ClassRepSettings classId={classId} repId={cls.data.rep_member_id} students={approved.map((m) => ({ id: m.id, name: m.name }))} />
 
             <AttendanceHistory classId={classId} live={!!cls.data.live_room_name} members={members.data ?? []} onRemove={setRemoving} />
 

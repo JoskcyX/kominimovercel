@@ -13,7 +13,7 @@ export async function daily(path: string, init: RequestInit = {}) {
   return res.status === 404 ? null : res.json();
 }
 
-async function token(room: string, userName: string, owner: boolean, userId: string) {
+async function token(room: string, userName: string, owner: boolean, userId: string, rep = false) {
   const t = await daily("/meeting-tokens", {
     method: "POST",
     body: JSON.stringify({
@@ -25,6 +25,8 @@ async function token(room: string, userName: string, owner: boolean, userId: str
         start_video_off: !owner,
         start_audio_off: !owner,
         exp: Math.floor(Date.now() / 1000) + 60 * 60 * 6,
+        // Class reps can mute or remove participants, but cannot end the class like the tutor.
+        ...(rep ? { permissions: { canAdmin: ["participants"] } } : {}),
       },
     }),
   });
@@ -102,7 +104,7 @@ export const joinLiveClass = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: m } = await supabaseAdmin.from("class_members").select("class_id, status, name").eq("id", data.memberId).maybeSingle();
     if (!m || m.status !== "approved") throw new Error("Not approved");
-    const { data: c } = await supabaseAdmin.from("classes").select("live_room_name, live_room_url").eq("id", m.class_id).maybeSingle();
+    const { data: c } = await supabaseAdmin.from("classes").select("live_room_name, live_room_url, rep_member_id").eq("id", m.class_id).maybeSingle();
     if (!c?.live_room_name || !c.live_room_url) throw new Error("Class isn't live");
-    return { url: `${c.live_room_url}?t=${await token(c.live_room_name, m.name, false, data.memberId)}` };
+    return { url: `${c.live_room_url}?t=${await token(c.live_room_name, m.name, false, data.memberId, c.rep_member_id === data.memberId)}` };
   });

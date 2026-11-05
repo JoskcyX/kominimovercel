@@ -16,3 +16,4 @@
 - Mobile layouts use shrinking text columns and fixed action columns, stacking toolbars and date fields below sm; shared CSS supplies touch targets and non-zooming form text without hiding overflow.
 - Live attendance history is owned by database session lifecycle triggers and heartbeat snapshots, so rejoining does not create a new session and manual or idle closure preserves immutable dated records independently of membership deletion.
 - Mount Daily Prebuilt through a dynamically imported SDK to observe actual meeting connectivity; count heartbeats only while media is connected and preserve membership identity on retries.
+- Class reps are student members acting through member-ID security-definer RPCs that validate rep status and log each action for the tutor; their video token gets participant-admin rights, never owner, so they can't end the class.

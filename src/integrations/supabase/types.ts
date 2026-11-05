@@ -145,6 +145,41 @@ export type Database = {
           },
         ]
       }
+      class_rep_actions: {
+        Row: {
+          action: string
+          class_id: string
+          created_at: string
+          id: string
+          rep_name: string
+          target_name: string
+        }
+        Insert: {
+          action: string
+          class_id: string
+          created_at?: string
+          id?: string
+          rep_name: string
+          target_name?: string
+        }
+        Update: {
+          action?: string
+          class_id?: string
+          created_at?: string
+          id?: string
+          rep_name?: string
+          target_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_rep_actions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       class_resources: {
         Row: {
           body: string
@@ -321,6 +356,7 @@ export type Database = {
           live_started_at: string | null
           presenting_page: number
           presenting_resource_id: string | null
+          rep_member_id: string | null
           session_ended_at: string | null
           session_started_at: string | null
           subject: string
@@ -341,6 +377,7 @@ export type Database = {
           live_started_at?: string | null
           presenting_page?: number
           presenting_resource_id?: string | null
+          rep_member_id?: string | null
           session_ended_at?: string | null
           session_started_at?: string | null
           subject?: string
@@ -361,6 +398,7 @@ export type Database = {
           live_started_at?: string | null
           presenting_page?: number
           presenting_resource_id?: string | null
+          rep_member_id?: string | null
           session_ended_at?: string | null
           session_started_at?: string | null
           subject?: string
@@ -373,6 +411,13 @@ export type Database = {
             columns: ["presenting_resource_id"]
             isOneToOne: false
             referencedRelation: "class_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classes_rep_member_id_fkey"
+            columns: ["rep_member_id"]
+            isOneToOne: false
+            referencedRelation: "class_members"
             referencedColumns: ["id"]
           },
         ]
@@ -896,6 +941,35 @@ export type Database = {
         }[]
       }
       quiz_join_open: { Args: { _quiz_id: string }; Returns: boolean }
+      rep_class_id: { Args: { _rep_id: string }; Returns: string }
+      rep_log_action: {
+        Args: { _action: string; _rep_id: string; _target: string }
+        Returns: undefined
+      }
+      rep_members: {
+        Args: { _rep_id: string }
+        Returns: {
+          id: string
+          joined_at: string
+          last_seen_at: string
+          left_at: string
+          name: string
+          phone: string
+          status: Database["public"]["Enums"]["class_member_status"]
+        }[]
+      }
+      rep_remove_member: {
+        Args: { _member_id: string; _rep_id: string }
+        Returns: undefined
+      }
+      rep_set_member_status: {
+        Args: {
+          _member_id: string
+          _rep_id: string
+          _status: Database["public"]["Enums"]["class_member_status"]
+        }
+        Returns: undefined
+      }
       request_class_join: {
         Args: { _class_id: string; _name: string; _phone: string }
         Returns: string

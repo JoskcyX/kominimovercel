@@ -11,6 +11,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getClassVideoUrl } from "@/lib/class-videos.functions";
 import { getLiveStatus, joinLiveClass } from "@/lib/live.functions";
 import { LiveRoom } from "@/components/LiveRoom";
+import { RepJoinNotices, RepPanel, useRepMembers } from "@/components/RepPanel";
 import { embedUrl } from "@/lib/courses";
 import { PdfPage, isPdf } from "@/components/PdfPage";
 
@@ -54,6 +55,7 @@ function ClassPage() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [quizzes, setQuizzes] = useState<ClassQuiz[]>([]);
 
+  const rep = useRepMembers(status === "approved" ? memberId : null);
   const [idLabel, setIdLabel] = useState<"phone" | "matric">("phone");
   useEffect(() => {
     setMemberId(localStorage.getItem(key));
@@ -172,7 +174,8 @@ function ClassPage() {
 
       {memberId && status === "approved" && (
         <div className="mt-8 grid gap-8">
-          {roomUrl && <LiveRoom url={roomUrl} onLeave={leaveLive} onConnectionChange={setConnected} />}
+          {roomUrl && <LiveRoom url={roomUrl} onLeave={leaveLive} onConnectionChange={setConnected} overlay={rep.members && memberId ? <RepJoinNotices repId={memberId} members={rep.members} reload={rep.reload} /> : null} />}
+          {rep.members && <RepPanel repId={memberId} members={rep.members} reload={rep.reload} />}
           <Presentation memberId={memberId} />
           {live && (
             <Button variant="secondary" onClick={joinLive} className="surface-card grid h-auto grid-cols-[minmax(0,1fr)_auto] gap-3 whitespace-normal border-secondary bg-secondary p-4 text-left text-secondary-foreground sm:p-6">

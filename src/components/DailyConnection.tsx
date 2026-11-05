@@ -104,7 +104,7 @@ export function DailyConnection({ url, audioOnly, onLeave, onConnectionChange }:
       </div>
     ) : (
       <div className="absolute bottom-2 left-2 z-20 flex max-w-[calc(100%-3rem)] items-center gap-1.5 rounded-full border border-border bg-card py-1 pl-2 pr-1 text-card-foreground shadow-md" role="status">
-        <span className={`pulse-dot size-1.5 shrink-0 rounded-full ${navigator ? "" : ""}`} />
+        <span className="pulse-dot size-1.5 shrink-0 rounded-full bg-warning" />
         <span className="truncate text-[11px] font-bold leading-none">{status}</span>
         <Button size="icon" variant="ghost" aria-label="Reconnect live class" title="Reconnect" onClick={() => retry.current()} className="size-5 min-h-0 shrink-0 rounded-full p-0"><RotateCw className="size-3" /></Button>
       </div>

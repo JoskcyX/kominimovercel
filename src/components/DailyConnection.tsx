@@ -97,10 +97,17 @@ export function DailyConnection({ url, audioOnly, onLeave, onConnectionChange }:
 
   return <>
     <div ref={mount} className={audioOnly ? "pointer-events-none fixed size-px opacity-0" : "size-full"} />
-    <div className="absolute bottom-2 left-2 z-20 flex max-w-[calc(100%-1rem)] items-center gap-2 rounded-lg border border-border bg-card px-2 py-1 text-card-foreground shadow-lg" role="status">
-      <span className={`size-2 shrink-0 rounded-full ${status === "Connected" ? "bg-success" : "bg-warning"}`} />
-      <span className="text-xs font-bold">{status}</span>
-      {status !== "Connected" && <Button size="icon" variant="ghost" aria-label="Reconnect live class" title="Reconnect" onClick={() => retry.current()}><RotateCw className="size-4" /></Button>}
-    </div>
+    {status === "Connected" ? (
+      // Collapses to a tiny dot once connected so it never covers the video or page controls.
+      <div className="absolute bottom-2 left-2 z-20" role="status" title="Live class connected" aria-label="Live class connected">
+        <span className="block size-2 rounded-full bg-success shadow" />
+      </div>
+    ) : (
+      <div className="absolute bottom-2 left-2 z-20 flex max-w-[calc(100%-3rem)] items-center gap-1.5 rounded-full border border-border bg-card py-1 pl-2 pr-1 text-card-foreground shadow-md" role="status">
+        <span className={`pulse-dot size-1.5 shrink-0 rounded-full ${navigator ? "" : ""}`} />
+        <span className="truncate text-[11px] font-bold leading-none">{status}</span>
+        <Button size="icon" variant="ghost" aria-label="Reconnect live class" title="Reconnect" onClick={() => retry.current()} className="size-5 min-h-0 shrink-0 rounded-full p-0"><RotateCw className="size-3" /></Button>
+      </div>
+    )}
   </>;
 }

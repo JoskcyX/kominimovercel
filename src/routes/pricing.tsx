@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FREE_TIER, PRO_TIER, formatMoney } from "@/lib/plans";
 
 export const Route = createFileRoute("/pricing")({
+  staticData: { sitemap: true },
   head: () => ({
     meta: [
       { title: "Pricing — Kominimo" },

@@ -76,10 +76,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "google-site-verification", content: "KE2F9qWrlYhveSpH--aknIdaNjISMgiFnmYdD17hnB0" },
       { title: "Kominimo — Live Classroom Quizzes Your Students Race Through" },
       {
         name: "description",

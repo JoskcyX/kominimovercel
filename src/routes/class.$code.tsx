@@ -16,6 +16,7 @@ import { embedUrl } from "@/lib/courses";
 import { PdfPage, isPdf } from "@/components/PdfPage";
 
 export const Route = createFileRoute("/class/$code")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Join your class — Kominimo" },

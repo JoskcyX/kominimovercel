@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatPrice, slugify } from "@/lib/courses";
 
 export const Route = createFileRoute("/_authenticated/my-courses")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "My courses — Kominimo" },

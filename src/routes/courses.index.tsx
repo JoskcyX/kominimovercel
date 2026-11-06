@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/courses";
 
 export const Route = createFileRoute("/courses/")({
+  staticData: { sitemap: true },
   head: () => ({
     meta: [
       { title: "Courses — Kominimo" },

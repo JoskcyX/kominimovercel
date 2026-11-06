@@ -19,6 +19,7 @@ import { endLiveClass, startLiveClass } from "@/lib/live.functions";
 import { LiveRoom } from "@/components/LiveRoom";
 
 export const Route = createFileRoute("/_authenticated/manage-class/$classId")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Class control room — Kominimo" },

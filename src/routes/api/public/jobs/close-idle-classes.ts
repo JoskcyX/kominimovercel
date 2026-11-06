@@ -17,6 +17,7 @@ async function dailyFetch(path: string, init: RequestInit = {}) {
 
 // Ends live classes nobody has been in for IDLE_MINUTES.
 export const Route = createFileRoute("/api/public/jobs/close-idle-classes")({
+  staticData: { sitemap: false },
   server: {
     handlers: {
       POST: async ({ request }) => {

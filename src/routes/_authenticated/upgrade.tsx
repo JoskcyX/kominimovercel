@@ -9,6 +9,7 @@ import { PRO_TIER, REFERRAL_SPLIT, formatMoney, isPro } from "@/lib/plans";
 import { usePlan } from "@/hooks/usePlan";
 
 export const Route = createFileRoute("/_authenticated/upgrade")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Upgrade to Pro — Kominimo" },

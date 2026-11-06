@@ -25,6 +25,7 @@ import { useQuizTimer } from "@/hooks/useQuizTimer";
 import { formatMs, MEDAL, toOptions, type QuestionType } from "@/lib/quiz";
 
 export const Route = createFileRoute("/_authenticated/quiz/$quizId")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Quiz control room — Kominimo" },

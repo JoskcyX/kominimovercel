@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatPrice, type Lesson, type LessonKind } from "@/lib/courses";
 
 export const Route = createFileRoute("/_authenticated/course/$courseId")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Edit course — Kominimo" },

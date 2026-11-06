@@ -12,6 +12,7 @@ import { makeJoinCode } from "@/lib/quiz";
 import { StudentProgress } from "@/components/StudentProgress";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Tutor dashboard — Kominimo" },

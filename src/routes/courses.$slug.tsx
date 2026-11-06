@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { embedUrl, formatPrice, type Lesson } from "@/lib/courses";
 
 export const Route = createFileRoute("/courses/$slug")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Course — Kominimo" },

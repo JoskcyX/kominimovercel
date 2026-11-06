@@ -12,6 +12,7 @@ import { useQuizTimer } from "@/hooks/useQuizTimer";
 import { formatMs, MEDAL, toOptions, type BoardRow, type PlayableQuestion } from "@/lib/quiz";
 
 export const Route = createFileRoute("/join/$code")({
+  staticData: { sitemap: false },
   ssr: false,
   head: () => ({
     meta: [

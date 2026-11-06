@@ -1,5 +1,7 @@
 # EDxKa Roadmap
 
+- [ ] Organize the class dashboard into focused sections, preserve all controls and join notifications, and verify signed-in desktop/mobile use.
+
 - [ ] Preserve live admission through brief interruptions with two-minute recovery; prevent returning-student duplicates and move individual details into attendance history.
 
 - [ ] Preserve attendance separately for each live session; show expandable dated records with participant counts and CSV/Excel downloads.

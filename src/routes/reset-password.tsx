@@ -14,6 +14,7 @@ export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
       { title: "Set a new password — Kominimo" },
+      { name: "robots", content: "noindex" },
       {
         name: "description",
         content: "Choose a new password for your Kominimo tutor account using your secure reset link.",

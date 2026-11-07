@@ -313,7 +313,7 @@ function ClassRoom() {
             <AttendanceHistory classId={classId} live={!!cls.data.live_room_name} members={members.data ?? []} onRemove={setRemoving} />
 
           </TabsContent>
-          <TabsContent value="quizzes" forceMount className="mt-6 data-[state=inactive]:hidden">
+          {features.quizzes && <TabsContent value="quizzes" forceMount className="mt-6 data-[state=inactive]:hidden">
             <h2 className="text-2xl font-bold">Quizzes</h2>
             <div className="surface-card mt-3 grid gap-2 p-4">
               <select value={pick} onChange={(e) => setPick(e.target.value)} className="h-11 w-full min-w-0 max-w-full rounded-xl border-2 border-input bg-background px-3">
@@ -355,10 +355,10 @@ function ClassRoom() {
               })}
             </div>
 
-          </TabsContent>
-          <TabsContent value="materials" forceMount className="mt-6 data-[state=inactive]:hidden [&_h2]:mt-0">
+          </TabsContent>}
+          {features.materials && <TabsContent value="materials" forceMount className="mt-6 data-[state=inactive]:hidden [&_h2]:mt-0">
             <ClassMaterials classId={classId} presentingId={cls.data.presenting_resource_id ?? null} presentingPage={cls.data.presenting_page ?? 1} />
-          </TabsContent>
+          </TabsContent>}
           <TabsContent value="settings" forceMount className="mt-6 data-[state=inactive]:hidden">
             <div className="surface-card mb-8 p-4">
               <h2 className="text-xl font-bold">Extra features</h2>
@@ -401,8 +401,9 @@ function ClassRoom() {
               </label>
             </div>
 
-            <ClassRepSettings classId={classId} repId={cls.data.rep_member_id} students={approved.map((m) => ({ id: m.id, name: m.name }))} />
+            {(features.rep || cls.data.rep_member_id) && <ClassRepSettings classId={classId} repId={cls.data.rep_member_id} students={approved.map((m) => ({ id: m.id, name: m.name }))} />}
 
+            {(features.roster || (roster.data?.length ?? 0) > 0) && (<>
             <div className="surface-card mt-8 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-4">
               <div>
                 <h2 className="text-xl font-bold">Expected students</h2>
@@ -448,6 +449,7 @@ function ClassRoom() {
                 })}
               </div>
             )}
+            </>)}
             </>)}
           </TabsContent>
         </Tabs>

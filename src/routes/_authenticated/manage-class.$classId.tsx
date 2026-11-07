@@ -41,11 +41,27 @@ function toLocalInput(v: string | null) {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
+type FeatureKey = "quizzes" | "materials" | "rep" | "roster";
+const FEATURES: { key: FeatureKey; label: string; hint: string }[] = [
+  { key: "quizzes", label: "Quizzes", hint: "Push quizzes to students during class" },
+  { key: "materials", label: "Materials", hint: "Share slides and files, present on screen" },
+  { key: "rep", label: "Class rep", hint: "Let a student help you admit and manage the class" },
+  { key: "roster", label: "Expected students list", hint: "Tick off students from your own list" },
+];
+
 function ClassRoom() {
   const { classId } = Route.useParams();
   const qc = useQueryClient();
   const inv = () => qc.invalidateQueries({ queryKey: ["class", classId] });
   const [section, setSection] = useState("classroom");
+  const [features, setFeatures] = useState<Record<FeatureKey, boolean>>({ quizzes: false, materials: false, rep: false, roster: false });
+  useEffect(() => {
+    try { const saved = localStorage.getItem(`kominimo:features:${classId}`); if (saved) setFeatures((f) => ({ ...f, ...JSON.parse(saved) })); } catch { /* ignore */ }
+  }, [classId]);
+  const toggleFeature = (k: FeatureKey, on: boolean) => {
+    setFeatures((f) => { const next = { ...f, [k]: on }; try { localStorage.setItem(`kominimo:features:${classId}`, JSON.stringify(next)); } catch { /* ignore */ } return next; });
+    if (!on && section === k) setSection("settings");
+  };
   const [removing, setRemoving] = useState<{ id: string; name: string } | null>(null);
 
   const cls = useQuery({
@@ -259,11 +275,11 @@ function ClassRoom() {
         </div>
 
         <Tabs value={section} onValueChange={setSection} className="mt-6">
-          <TabsList aria-label="Class sections" className="grid h-auto w-full grid-cols-3 gap-1 rounded-lg border border-border bg-muted p-1 sm:grid-cols-5">
+          <TabsList aria-label="Class sections" className="flex h-auto w-full flex-wrap gap-1 rounded-lg border border-border bg-muted p-1 [&>button]:flex-1">
             <TabsTrigger value="classroom" className="min-h-11 gap-1.5 px-2"><Users className="size-4 shrink-0" /> Classroom{pending.length > 0 && <span className="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{pending.length}</span>}</TabsTrigger>
             <TabsTrigger value="attendance" className="min-h-11 gap-1.5 px-2"><CalendarDays className="size-4 shrink-0" /> Attendance</TabsTrigger>
-            <TabsTrigger value="quizzes" className="min-h-11 gap-1.5 px-2"><BookOpen className="size-4 shrink-0" /> Quizzes</TabsTrigger>
-            <TabsTrigger value="materials" className="min-h-11 gap-1.5 px-2"><FileText className="size-4 shrink-0" /> Materials</TabsTrigger>
+            {features.quizzes && <TabsTrigger value="quizzes" className="min-h-11 gap-1.5 px-2"><BookOpen className="size-4 shrink-0" /> Quizzes</TabsTrigger>}
+            {features.materials && <TabsTrigger value="materials" className="min-h-11 gap-1.5 px-2"><FileText className="size-4 shrink-0" /> Materials</TabsTrigger>}
             <TabsTrigger value="settings" className="min-h-11 gap-1.5 px-2"><Settings className="size-4 shrink-0" /> Settings</TabsTrigger>
           </TabsList>
           <TabsContent value="classroom" forceMount className="mt-6 data-[state=inactive]:hidden">
@@ -289,9 +305,8 @@ function ClassRoom() {
                 </div>
               ))}
             </div>
-            <div className="mt-8 flex flex-wrap gap-2 border-t border-border pt-4">
-              <Button variant="outline" onClick={() => setSection("quizzes")}><BookOpen className="size-4" /> Open quizzes</Button>
-              <Button variant="outline" onClick={() => setSection("materials")}><FileText className="size-4" /> Open materials</Button>
+            <div className="mt-8 border-t border-border pt-4">
+              <Button variant="outline" onClick={() => setSection("settings")}><Settings className="size-4" /> More features in Settings</Button>
             </div>
           </TabsContent>
           <TabsContent value="attendance" forceMount className="mt-6 data-[state=inactive]:hidden [&>section]:mt-0">
@@ -345,6 +360,18 @@ function ClassRoom() {
             <ClassMaterials classId={classId} presentingId={cls.data.presenting_resource_id ?? null} presentingPage={cls.data.presenting_page ?? 1} />
           </TabsContent>
           <TabsContent value="settings" forceMount className="mt-6 data-[state=inactive]:hidden">
+            <div className="surface-card mb-8 p-4">
+              <h2 className="text-xl font-bold">Extra features</h2>
+              <p className="text-sm text-muted-foreground">Turn on only what you need. Switched-on features show up on your class page.</p>
+              <div className="mt-3 grid gap-2">
+                {FEATURES.map((f) => (
+                  <label key={f.key} className="grid min-h-11 cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-border px-3 py-2">
+                    <span className="min-w-0"><span className="block font-bold">{f.label}</span><span className="block text-xs text-muted-foreground">{f.hint}</span></span>
+                    <Switch aria-label={f.label} checked={features[f.key]} onCheckedChange={(v) => toggleFeature(f.key, v)} />
+                  </label>
+                ))}
+              </div>
+            </div>
             <h2 className="text-2xl font-bold">Class settings</h2>
         <div className="mt-4 border-b border-border grid gap-4 p-4 sm:grid-cols-2">
           <label className="grid min-w-0 gap-1 text-sm font-bold">

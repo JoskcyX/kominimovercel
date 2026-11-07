@@ -342,7 +342,7 @@ function ClassRoom() {
 
           </TabsContent>
           <TabsContent value="materials" forceMount className="mt-6 data-[state=inactive]:hidden [&_h2]:mt-0">
-            <ClassMaterials active={section === "materials"} classId={classId} presentingId={cls.data.presenting_resource_id ?? null} presentingPage={cls.data.presenting_page ?? 1} />
+            <ClassMaterials classId={classId} presentingId={cls.data.presenting_resource_id ?? null} presentingPage={cls.data.presenting_page ?? 1} />
           </TabsContent>
           <TabsContent value="settings" forceMount className="mt-6 data-[state=inactive]:hidden">
             <h2 className="text-2xl font-bold">Class settings</h2>

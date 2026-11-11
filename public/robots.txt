@@ -1,14 +1,15 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
+# Public marketing pages are indexable; private app areas are not.
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /manage-class/
+Disallow: /quiz/
+Disallow: /account
+Disallow: /admin
+Disallow: /upgrade
+Disallow: /my-courses
+Disallow: /course/
+Disallow: /join/
+Disallow: /class/
+Disallow: /api/
+Disallow: /reset-password

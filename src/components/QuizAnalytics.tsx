@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { BarChart3, Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { getQuestionStats } from "@/lib/quizzes.functions";
 import { downloadCsv, slugify } from "@/lib/csv";
 import { formatMs } from "@/lib/quiz";
 
@@ -37,11 +37,7 @@ export function QuizAnalytics({
 }) {
   const stats = useQuery({
     queryKey: ["question-stats", quizId],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("question_stats", { _quiz_id: quizId });
-      if (error) throw error;
-      return (data ?? []) as StatRow[];
-    },
+    queryFn: async (): Promise<StatRow[]> => getQuestionStats({ data: { quizId } }),
     refetchInterval: 8000,
   });
 

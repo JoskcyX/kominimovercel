@@ -3,20 +3,22 @@ import { useQuery } from "@tanstack/react-query";
 import { BookOpen, PlayCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { MarketingLayout } from "@/components/site/MarketingLayout";
+import { SITE } from "@/config/site";
+import { listPublishedCourses } from "@/lib/courses.functions";
 import { formatPrice } from "@/lib/courses";
 
 export const Route = createFileRoute("/courses/")({
   staticData: { sitemap: true },
   head: () => ({
     meta: [
-      { title: "Courses — Kominimo" },
+      { title: `Courses — ${SITE.name}` },
       {
         name: "description",
-        content: "Browse video and written courses published by Kominimo tutors, free and paid.",
+        content: `Browse video and written courses published by ${SITE.name} tutors, free and paid.`,
       },
-      { property: "og:title", content: "Courses — Kominimo" },
-      { property: "og:description", content: "Video and written courses from Kominimo tutors." },
+      { property: "og:title", content: `Courses — ${SITE.name}` },
+      { property: "og:description", content: `Video and written courses from ${SITE.name} tutors.` },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -27,32 +29,16 @@ export const Route = createFileRoute("/courses/")({
 function CourseCatalog() {
   const courses = useQuery({
     queryKey: ["public-courses"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("id, title, slug, summary, cover_url, price_cents, currency")
-        .eq("is_published", true)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => listPublishedCourses(),
   });
 
   return (
-    <div className="min-h-screen confetti-bg">
-      <header className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-4 sm:px-6 sm:py-6">
-        <Link to="/" className="font-display text-2xl font-bold">
-          Kọ́mì<span className="text-primary">nímọ̀</span>
-        </Link>
-        <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">
-          <Link to="/auth">Sign in</Link>
-        </Button>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
+    <MarketingLayout>
+    <div className="confetti-bg">
+      <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6">
         <h1 className="font-display text-4xl font-bold sm:text-5xl">Courses</h1>
         <p className="mt-3 max-w-xl text-lg text-muted-foreground">
-          Learn at your own pace with video and written lessons from Kominimo tutors.
+          Learn at your own pace with video and written lessons from {SITE.name} tutors.
         </p>
 
         {courses.isLoading && <p className="mt-10 text-muted-foreground">Loading courses…</p>}
@@ -94,7 +80,8 @@ function CourseCatalog() {
             </Link>
           ))}
         </div>
-      </main>
+      </div>
     </div>
+    </MarketingLayout>
   );
 }

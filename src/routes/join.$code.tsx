@@ -7,7 +7,12 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { ConsentCheckbox } from "@/components/legal/ConsentCheckbox";
+import { SITE } from "@/config/site";
+import {
+  finishParticipant, getAnswerKey, getBoard, getPlayQuestions, getQuestionProgress, getQuizByCode, joinQuiz,
+  participantAlive, submitAnswer, type QuizPublic,
+} from "@/lib/play.functions";
 import { useQuizTimer } from "@/hooks/useQuizTimer";
 import { formatMs, MEDAL, toOptions, type BoardRow, type PlayableQuestion } from "@/lib/quiz";
 
@@ -16,9 +21,10 @@ export const Route = createFileRoute("/join/$code")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Join the live quiz — Kominimo" },
+      { title: `Join the live quiz — ${SITE.name}` },
       { name: "description", content: "Enter your name, wait in the lobby and play the live quiz." },
-      { property: "og:title", content: "Join the live quiz — Kominimo" },
+      { name: "robots", content: "noindex" },
+      { property: "og:title", content: `Join the live quiz — ${SITE.name}` },
       { property: "og:description", content: "Enter your name and play the live quiz." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -27,18 +33,9 @@ export const Route = createFileRoute("/join/$code")({
   component: JoinPage,
 });
 
-type Quiz = {
-  id: string;
-  title: string;
-  status: "draft" | "lobby" | "live" | "ended";
-  paused: boolean;
-  reveal_answers: boolean;
-  skip_signal: number;
-  extend_signal: number;
-  extend_seconds: number;
-  question_deadline_at: string | null;
-  question_paused_at: string | null;
-};
+type Quiz = QuizPublic;
+
+type Session = { participantId: string; token: string };
 
 const joinSchema = z.object({
   name: z.string().trim().min(2, "Enter your full name").max(60),
@@ -54,7 +51,8 @@ function JoinPage() {
   const { code } = Route.useParams();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
-  const [participantId, setParticipantId] = useState<string | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [agreed, setAgreed] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [joining, setJoining] = useState(false);
@@ -63,58 +61,56 @@ function JoinPage() {
   const storageKey = `quizpop:${code}`;
 
   const loadQuiz = useCallback(async () => {
-    const { data } = await supabase
-      .from("quizzes")
-      .select("id, title, status, paused, reveal_answers, skip_signal, extend_signal, extend_seconds, question_deadline_at, question_paused_at")
-      .eq("join_code", code.toUpperCase())
-      .maybeSingle();
-    setQuiz(data as Quiz | null);
+    try {
+      setQuiz(await getQuizByCode({ data: { code: code.toUpperCase() } }));
+    } catch {
+      /* keep the last known state through a blip */
+    }
     setLoading(false);
   }, [code]);
 
   useQuizTimer(quiz, loadQuiz);
 
   useEffect(() => {
-    const saved = localStorage.getItem(storageKey);
-    if (saved) setParticipantId(saved);
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) ?? "null") as Session | null;
+      if (saved?.participantId && saved.token) setSession(saved);
+      else localStorage.removeItem(storageKey); // old-format entry from before signed sessions
+    } catch {
+      localStorage.removeItem(storageKey);
+    }
     loadQuiz();
   }, [loadQuiz, storageKey]);
 
+  // Live updates: poll the shared quiz state (the server shares one query between all students).
   useEffect(() => {
-    if (!quiz) return;
-    const channel = supabase
-      .channel(`quiz-${quiz.id}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "quizzes", filter: `id=eq.${quiz.id}` },
-        (payload) => setQuiz(payload.new as Quiz),
-      )
-      .subscribe();
+    if (!quiz?.id) return;
     const poll = setInterval(loadQuiz, 1500);
-    return () => {
-      supabase.removeChannel(channel);
-      clearInterval(poll);
-    };
+    return () => clearInterval(poll);
   }, [quiz?.id, loadQuiz]);
 
   // The tutor can remove a student mid-session.
   useEffect(() => {
-    if (!participantId) return;
+    if (!session) return;
     const check = async () => {
-      const { data, error } = await supabase.rpc("participant_alive", {
-        _participant_id: participantId,
-      });
-      if (!error && data === false) {
-        localStorage.removeItem(storageKey);
-        setKicked(true);
+      try {
+        const { alive } = await participantAlive({ data: { token: session.token } });
+        if (!alive) {
+          localStorage.removeItem(storageKey);
+          setKicked(true);
+        }
+      } catch (e) {
+        // Expired token (24 h) → just ask them to enter their details again.
+        if (e instanceof Error && /expired/i.test(e.message)) {
+          localStorage.removeItem(storageKey);
+          setSession(null);
+        }
       }
     };
-    check();
+    void check();
     const timer = setInterval(check, 5000);
     return () => clearInterval(timer);
-  }, [participantId, storageKey]);
-
-
+  }, [session, storageKey]);
 
   const join = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -124,26 +120,21 @@ function JoinPage() {
       toast.error(parsed.error.issues[0]?.message ?? "Check your details");
       return;
     }
+    if (!agreed) {
+      toast.error("Please accept the Terms of Use and Privacy Policy to continue.");
+      return;
+    }
     setJoining(true);
-    const { data: open } = await supabase.rpc("quiz_join_open", { _quiz_id: quiz.id });
-    if (open === false) {
+    try {
+      const result = await joinQuiz({ data: { quizId: quiz.id, name: parsed.data.name, phone: parsed.data.phone, consent: true } });
+      const next = { participantId: result.participantId, token: result.token };
+      localStorage.setItem(storageKey, JSON.stringify(next));
+      setSession(next);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not join — the lobby may not be open yet.");
+    } finally {
       setJoining(false);
-      toast.error("This quiz isn't open right now — ask your tutor to open the lobby.");
-      return;
     }
-    // Students have no account and can't read the participants list, so joining goes through a safe server step.
-    const { data, error } = await supabase.rpc("join_quiz", {
-      _quiz_id: quiz.id,
-      _name: parsed.data.name,
-      _phone: parsed.data.phone,
-    });
-    setJoining(false);
-    if (error || !data) {
-      toast.error("Could not join — the lobby may not be open yet.");
-      return;
-    }
-    localStorage.setItem(storageKey, data as string);
-    setParticipantId(data as string);
   };
 
   if (kicked) {
@@ -186,7 +177,7 @@ function JoinPage() {
     );
   }
 
-  if (!participantId) {
+  if (!session) {
     return (
       <div className="grid min-h-screen place-items-center confetti-bg px-4 py-6 sm:px-6 sm:py-12">
         <div className="pop-in w-full max-w-md surface-card p-5 sm:p-8">
@@ -219,9 +210,10 @@ function JoinPage() {
                 className="h-12 rounded-xl border-2"
               />
             </div>
+            <ConsentCheckbox id="quiz-consent" checked={agreed} onChange={setAgreed} audience="student" />
             <Button
               type="submit"
-              disabled={joining || quiz.status === "draft" || quiz.status === "ended"}
+              disabled={joining || !agreed || quiz.status === "draft" || quiz.status === "ended"}
               className="chunky h-auto min-h-12 w-full whitespace-normal rounded-xl py-3 text-base font-bold"
             >
               {quiz.status === "draft"
@@ -242,7 +234,7 @@ function JoinPage() {
     return <Lobby quiz={quiz} />;
   }
 
-  return <Play quiz={quiz} participantId={participantId} />;
+  return <Play quiz={quiz} session={session} />;
 }
 
 function Lobby({ quiz }: { quiz: Quiz }) {
@@ -250,10 +242,9 @@ function Lobby({ quiz }: { quiz: Quiz }) {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.rpc("get_quiz_board", { _quiz_id: quiz.id });
-      setBoard((data ?? []) as BoardRow[]);
+      try { setBoard(await getBoard({ data: { quizId: quiz.id } })); } catch { /* retry on next tick */ }
     };
-    load();
+    void load();
     const timer = setInterval(load, 3000);
     return () => clearInterval(timer);
   }, [quiz.id]);
@@ -292,7 +283,8 @@ function Lobby({ quiz }: { quiz: Quiz }) {
   );
 }
 
-function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
+function Play({ quiz, session }: { quiz: Quiz; session: Session }) {
+  const { token, participantId } = session;
   const [questions, setQuestions] = useState<PlayableQuestion[] | null>(null);
   const [index, setIndex] = useState(quiz.skip_signal);
   const [answer, setAnswer] = useState("");
@@ -308,15 +300,19 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
   const lastSkip = useRef<number>(quiz.skip_signal);
   const lastExtend = useRef<number>(quiz.extend_signal);
   const locked = useRef(false);
+  // Device clocks can be wrong; every deadline is compared against the SERVER's clock.
+  const srvOffset = useRef(0);
+  srvOffset.current = quiz.server_now ? Date.parse(quiz.server_now) - Date.now() : srvOffset.current;
+  const srvNow = () => Date.now() + srvOffset.current;
 
   useEffect(() => {
-    supabase.rpc("get_quiz_questions", { _quiz_id: quiz.id }).then(({ data }) => {
-      const rows = (data ?? []).map((row) => ({
-        ...(row as PlayableQuestion),
-        options: toOptions((row as { options: unknown }).options),
-      }));
-      setQuestions(rows as PlayableQuestion[]);
-    });
+    let live = true;
+    const load = () =>
+      getPlayQuestions({ data: { quizId: quiz.id } })
+        .then((rows) => live && setQuestions(rows.map((row) => ({ ...row, options: toOptions(row.options) })) as PlayableQuestion[]))
+        .catch(() => live && setTimeout(load, 2000));
+    void load();
+    return () => { live = false; };
   }, [quiz.id]);
 
   const current = questions?.[index];
@@ -324,7 +320,7 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
   const goNext = useCallback(async () => {
     const isLast = quiz.skip_signal >= (questions?.length ?? 0);
     if (isLast) {
-      await supabase.rpc("finish_participant", { _participant_id: participantId });
+      await finishParticipant({ data: { token } }).catch(() => undefined);
       setDone(true);
       return;
     }
@@ -334,29 +330,32 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
     setWasCorrect(null);
     setAnswerKey(null);
     setWaiting({ answered: 0, total: 0 });
-    startedAt.current = Date.now();
-  }, [quiz.skip_signal, participantId, questions?.length]);
+    startedAt.current = srvNow();
+  }, [quiz.skip_signal, token, questions?.length]);
 
   const submit = useCallback(
     async (response: string) => {
       if (!current || locked.current || submitted || quiz.paused) return;
       locked.current = true;
-      const elapsed = Math.max(0, Date.now() - startedAt.current);
-      const { data } = await supabase.rpc("submit_answer", {
-        _participant_id: participantId,
-        _question_id: current.id,
-        _response: response,
-        _time_ms: elapsed,
-      });
-      setSubmitted(true);
-      setWasCorrect(Boolean(data));
-      locked.current = false;
-      if (quiz.reveal_answers) {
-        const { data: key } = await supabase.rpc("get_answer_key", { _question_id: current.id });
-        if (typeof key === "string") setAnswerKey(key);
+      // Timing is measured by the server from the shared question clock — we send only the answer.
+      try {
+        const { correct } = await submitAnswer({ data: { token, questionId: current.id, response } });
+        setSubmitted(true);
+        setWasCorrect(correct);
+        if (quiz.reveal_answers) {
+          const { answer: key } = await getAnswerKey({ data: { token, questionId: current.id } }).catch(() => ({ answer: null }));
+          if (typeof key === "string") setAnswerKey(key);
+        }
+      } catch (e) {
+        const message = e instanceof Error ? e.message : "";
+        // The question just closed or the quiz paused — the next poll will move us on; don't strand the student.
+        if (/paused|isn't open/i.test(message)) toast.info(message);
+        else setSubmitted(true);
+      } finally {
+        locked.current = false;
       }
     },
-    [current, participantId, submitted, quiz.reveal_answers, quiz.paused],
+    [current, token, submitted, quiz.reveal_answers, quiz.paused],
   );
 
   // New question: reset the clock and start ticking.
@@ -367,13 +366,13 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
     setWasCorrect(null);
     setAnswerKey(null);
     setWaiting({ answered: 0, total: 0 });
-    startedAt.current = Date.now();
-    deadline.current = quiz.question_deadline_at ? Date.parse(quiz.question_deadline_at) : Date.now() + current.time_limit * 1000;
+    startedAt.current = srvNow();
+    deadline.current = quiz.question_deadline_at ? Date.parse(quiz.question_deadline_at) : srvNow() + current.time_limit * 1000;
     pausedAt.current = null;
-    setRemaining(Math.max(0, Math.ceil((deadline.current - Date.now()) / 1000)));
+    setRemaining(Math.max(0, Math.ceil((deadline.current - srvNow()) / 1000)));
     const timer = setInterval(() => {
       if (pausedAt.current !== null) return;
-      setRemaining(Math.max(0, Math.ceil((deadline.current - Date.now()) / 1000)));
+      setRemaining(Math.max(0, Math.ceil((deadline.current - srvNow()) / 1000)));
     }, 250);
     return () => clearInterval(timer);
   }, [current?.id, done, current]);
@@ -381,11 +380,11 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
   // Host pressed pause / resume: freeze and thaw the clock for everyone.
   useEffect(() => {
     if (quiz.paused) {
-      if (pausedAt.current === null) pausedAt.current = Date.now();
+      if (pausedAt.current === null) pausedAt.current = srvNow();
       return;
     }
     if (pausedAt.current !== null) {
-      const frozen = Date.now() - pausedAt.current;
+      const frozen = srvNow() - pausedAt.current;
       if (!quiz.question_deadline_at) deadline.current += frozen;
       startedAt.current += frozen;
       pausedAt.current = null;
@@ -398,7 +397,7 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
     lastExtend.current = quiz.extend_signal;
     if (quiz.extend_seconds > 0) {
       if (!quiz.question_deadline_at) deadline.current += quiz.extend_seconds * 1000;
-      setRemaining(Math.max(0, Math.ceil((deadline.current - Date.now()) / 1000)));
+      setRemaining(Math.max(0, Math.ceil((deadline.current - srvNow()) / 1000)));
       toast.info(`Your tutor added ${quiz.extend_seconds} seconds`);
     }
   }, [quiz.extend_signal, quiz.extend_seconds]);
@@ -406,7 +405,7 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
   useEffect(() => {
     if (!quiz.question_deadline_at) return;
     deadline.current = Date.parse(quiz.question_deadline_at);
-    const clock = quiz.paused && quiz.question_paused_at ? Date.parse(quiz.question_paused_at) : Date.now();
+    const clock = quiz.paused && quiz.question_paused_at ? Date.parse(quiz.question_paused_at) : srvNow();
     setRemaining(Math.max(0, Math.ceil((deadline.current - clock) / 1000)));
   }, [quiz.question_deadline_at, quiz.question_paused_at, quiz.paused, current?.id]);
 
@@ -419,12 +418,12 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
 
   // Time is up: lock the answer while the shared database cursor advances everyone.
   useEffect(() => {
-    if (!current || done || remaining > 0 || quiz.paused || Date.now() < deadline.current) return;
+    if (!current || done || remaining > 0 || quiz.paused || srvNow() < deadline.current) return;
     let cancelled = false;
     (async () => {
       if (!submitted) await submit("");
       if (!cancelled && index + 1 >= (questions?.length ?? 0)) {
-        await supabase.rpc("finish_participant", { _participant_id: participantId });
+        await finishParticipant({ data: { token } }).catch(() => undefined);
       }
     })();
     return () => {
@@ -437,15 +436,12 @@ function Play({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
     if (!current || done || !submitted || quiz.paused) return;
     let stop = false;
     const check = async () => {
-      const { data } = await supabase.rpc("question_progress", {
-        _quiz_id: quiz.id,
-        _question_id: current.id,
-      });
-      const row = (data as { answered: number; total: number }[] | null)?.[0];
-      if (!row || stop) return;
-      setWaiting(row);
+      try {
+        const row = await getQuestionProgress({ data: { quizId: quiz.id, questionId: current.id } });
+        if (!stop) setWaiting(row);
+      } catch { /* retry on next tick */ }
     };
-    check();
+    void check();
     const poll = setInterval(check, 1500);
     return () => {
       stop = true;
@@ -613,10 +609,9 @@ function Results({ quiz, participantId }: { quiz: Quiz; participantId: string })
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.rpc("get_quiz_board", { _quiz_id: quiz.id });
-      setBoard((data ?? []) as BoardRow[]);
+      try { setBoard(await getBoard({ data: { quizId: quiz.id } })); } catch { /* retry on next tick */ }
     };
-    load();
+    void load();
     const timer = setInterval(load, 5000);
     return () => clearInterval(timer);
   }, [quiz.id]);

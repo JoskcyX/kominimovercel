@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
+import { importQuestions } from "@/lib/quizzes.functions";
 import { parseQuestions } from "@/lib/parse-questions";
 import { questionTypeLabel } from "@/lib/quiz";
 
@@ -30,18 +30,14 @@ export function BulkImport({ quizId, startIndex }: { quizId: string; startIndex:
   const importAll = useMutation({
     mutationFn: async () => {
       if (parsed.length === 0) throw new Error("Nothing to import yet");
-      const rows = parsed.map((question, i) => ({
-        quiz_id: quizId,
-        order_index: startIndex + i + 1,
+      const items = parsed.map((question) => ({
         type: question.type,
         prompt: question.prompt,
         options: question.options,
         correct_answer: question.correct_answer,
-        time_limit: Math.min(Math.max(timeLimit, 5), 300),
       }));
-      const { error } = await supabase.from("questions").insert(rows);
-      if (error) throw error;
-      return rows.length;
+      const { count } = await importQuestions({ data: { quizId, timeLimit: Math.min(Math.max(timeLimit, 5), 300), items } });
+      return count;
     },
     onSuccess: (count) => {
       setText("");

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, Check, Eye, Users } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { listQuestionsAdmin } from "@/lib/quizzes.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -16,11 +16,7 @@ export function StudentPreview({ quizId, title, open, onOpenChange }: { quizId: 
   const qs = useQuery({
     queryKey: ["preview", quizId],
     enabled: open,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("questions").select("id, order_index, type, prompt, options, time_limit, correct_answer").eq("quiz_id", quizId).order("order_index");
-      if (error) throw error;
-      return data as Q[];
-    },
+    queryFn: async (): Promise<Q[]> => listQuestionsAdmin({ data: { quizId } }),
   });
   const list = qs.data ?? [];
   const q = step >= 0 ? list[step] : null;

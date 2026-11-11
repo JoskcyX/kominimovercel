@@ -15,7 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { Brand } from "@/components/site/Brand";
+import { SITE } from "@/config/site";
+import {
+  addBlankQuestion, deleteQuestion, getQuizAdmin, listParticipants, listQuestionsAdmin, quizAction, removeParticipant,
+  renameQuiz, updateQuestion,
+} from "@/lib/quizzes.functions";
 import { BulkImport } from "@/components/BulkImport";
 import { HostControls } from "@/components/HostControls";
 import { QuizAnalytics } from "@/components/QuizAnalytics";
@@ -28,9 +33,9 @@ export const Route = createFileRoute("/_authenticated/quiz/$quizId")({
   staticData: { sitemap: false },
   head: () => ({
     meta: [
-      { title: "Quiz control room — Kominimo" },
+      { title: `Quiz control room — ${SITE.name}` },
       { name: "description", content: "Write questions, share the link and run the live session." },
-      { property: "og:title", content: "Quiz control room — Kominimo" },
+      { property: "og:title", content: `Quiz control room — ${SITE.name}` },
       { property: "og:description", content: "Write questions and run the live session." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -56,15 +61,7 @@ function QuizControl() {
 
   const quiz = useQuery({
     queryKey: ["quiz", quizId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("quizzes")
-        .select("id, title, join_code, status, paused, reveal_answers, skip_signal, extend_signal, question_deadline_at, question_paused_at")
-        .eq("id", quizId)
-        .single();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getQuizAdmin({ data: { quizId } }),
     refetchInterval: 1500,
   });
 
@@ -73,57 +70,19 @@ function QuizControl() {
 
   const questions = useQuery({
     queryKey: ["questions", quizId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("questions")
-        .select("id, order_index, type, prompt, options, correct_answer, time_limit")
-        .eq("quiz_id", quizId)
-        .order("order_index");
-      if (error) throw error;
-      return data.map((row) => ({ ...row, options: toOptions(row.options) })) as QuestionRow[];
-    },
+    queryFn: async (): Promise<QuestionRow[]> => (await listQuestionsAdmin({ data: { quizId } })).map((row) => ({ ...row, options: toOptions(row.options) })),
   });
 
   const participants = useQuery({
     queryKey: ["participants", quizId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("participants")
-        .select("id, name, phone, score, total_time_ms, finished_at")
-        .eq("quiz_id", quizId)
-        .order("score", { ascending: false })
-        .order("total_time_ms", { ascending: true });
-      if (error) throw error;
-      return data;
-    },
-    refetchInterval: 3000,
+    queryFn: () => listParticipants({ data: { quizId } }),
+    refetchInterval: 2500, // polling replaces the old realtime subscription
   });
-
-  useEffect(() => {
-    const channel = supabase
-      .channel(`tutor-${quizId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "participants", filter: `quiz_id=eq.${quizId}` },
-        () => queryClient.invalidateQueries({ queryKey: ["participants", quizId] }),
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [quizId, queryClient]);
 
   const setStatus = useMutation({
     mutationFn: async (status: "draft" | "lobby" | "live" | "ended") => {
-      const { error } = await supabase
-        .from("quizzes")
-        .update(
-          status === "live"
-            ? { status, started_at: new Date().toISOString(), skip_signal: 0, extend_signal: 0, paused: false }
-            : { status },
-        )
-        .eq("id", quizId);
-      if (error) throw error;
+      const action = status === "live" ? "start" : status === "ended" ? "end" : status === "lobby" ? "lobby" : null;
+      if (action) await quizAction({ data: { quizId, action } });
     },
     onSuccess: (_data, status) => {
       queryClient.invalidateQueries({ queryKey: ["quiz", quizId] });
@@ -133,19 +92,7 @@ function QuizControl() {
   });
 
   const addQuestion = useMutation({
-    mutationFn: async () => {
-      const next = (questions.data?.length ?? 0) + 1;
-      const { error } = await supabase.from("questions").insert({
-        quiz_id: quizId,
-        order_index: next,
-        type: "multiple_choice",
-        prompt: "",
-        options: ["", "", "", ""],
-        correct_answer: "",
-        time_limit: 20,
-      });
-      if (error) throw error;
-    },
+    mutationFn: () => addBlankQuestion({ data: { quizId } }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["questions", quizId] }),
     onError: (error) => toast.error(error instanceof Error ? error.message : "Could not add question"),
   });
@@ -172,9 +119,7 @@ function QuizControl() {
             <ArrowLeft className="size-4" /> Dashboard
           </Link>
         </Button>
-        <span className="font-display text-xl font-bold">
-          Kọ́mì<span className="text-primary">nímọ̀</span>
-        </span>
+        <Brand className="text-xl" />
       </header>
 
       <main className="mx-auto max-w-5xl space-y-6 px-4 pb-24 sm:space-y-8 sm:px-6">
@@ -317,14 +262,12 @@ function QuizControl() {
                     size="icon"
                     aria-label={`Remove ${person.name}`}
                     onClick={async () => {
-                      const { error } = await supabase
-                        .from("participants")
-                        .delete()
-                        .eq("id", person.id);
-                      if (error) toast.error(error.message);
-                      else {
+                      try {
+                        await removeParticipant({ data: { id: person.id } });
                         toast.success(`${person.name} removed`);
                         queryClient.invalidateQueries({ queryKey: ["participants", quizId] });
+                      } catch (e) {
+                        toast.error(e instanceof Error ? e.message : "Could not remove");
                       }
                     }}
                   >
@@ -358,12 +301,12 @@ function TitleEditor({ quizId, title }: { quizId: string; title: string }) {
         onChange={(event) => setValue(event.target.value)}
         onBlur={async () => {
           if (value.trim() === title) return;
-          const { error } = await supabase
-            .from("quizzes")
-            .update({ title: value.trim() || "Untitled quiz" })
-            .eq("id", quizId);
-          if (error) toast.error(error.message);
-          else queryClient.invalidateQueries({ queryKey: ["quiz", quizId] });
+          try {
+            await renameQuiz({ data: { quizId, title: value.trim() } });
+            queryClient.invalidateQueries({ queryKey: ["quiz", quizId] });
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Could not rename");
+          }
         }}
         className="h-12 rounded-xl border-2 text-xl font-bold"
       />
@@ -398,28 +341,33 @@ function QuestionCard({
       return;
     }
     setSaving(true);
-    const { error } = await supabase
-      .from("questions")
-      .update({
-        type: draft.type,
-        prompt: draft.prompt.trim(),
-        options: draft.type === "multiple_choice" ? draft.options : [],
-        correct_answer: draft.correct_answer.trim(),
-        time_limit: Math.min(300, Math.max(5, draft.time_limit)),
-      })
-      .eq("id", question.id);
-    setSaving(false);
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await updateQuestion({
+        data: {
+          id: question.id,
+          type: draft.type,
+          prompt: draft.prompt.trim(),
+          options: draft.type === "multiple_choice" ? draft.options : [],
+          correct_answer: draft.correct_answer.trim(),
+          time_limit: Math.min(300, Math.max(5, Math.round(draft.time_limit) || 20)),
+        },
+      });
       toast.success(`Question ${index + 1} saved`);
       refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save");
+    } finally {
+      setSaving(false);
     }
   };
 
   const remove = async () => {
-    const { error } = await supabase.from("questions").delete().eq("id", question.id);
-    if (error) toast.error(error.message);
-    else refresh();
+    try {
+      await deleteQuestion({ data: { id: question.id } });
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not delete");
+    }
   };
 
   return (

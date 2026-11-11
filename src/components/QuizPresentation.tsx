@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { HostControls } from "@/components/HostControls";
-import { supabase } from "@/integrations/supabase/client";
+import { Brand } from "@/components/site/Brand";
+import { getPresentationAnswers } from "@/lib/quizzes.functions";
 import { formatMs, type PlayableQuestion } from "@/lib/quiz";
 import { getPresentationProgress } from "@/lib/quiz-presentation";
 
@@ -29,19 +30,8 @@ export function QuizPresentation({ open, onOpenChange, quiz, questions, players,
     queryKey: ["presentation-answers", quiz.id],
     enabled: open && (quiz.status === "live" || quiz.status === "ended"),
     refetchInterval: open && quiz.status === "live" ? 1500 : false,
-    queryFn: async () => {
-      const ids = questions.map((question) => question.id);
-      if (!ids.length) return [];
-      // Read only IDs; never load student responses or contact details onto the projection.
-      const rows: { question_id: string; participant_id: string }[] = [];
-      for (let offset = 0; ; offset += 1000) {
-        const { data, error } = await supabase.from("answers").select("question_id, participant_id").in("question_id", ids).order("id").range(offset, offset + 999);
-        if (error) throw error;
-        rows.push(...data);
-        if (data.length < 1000) break;
-      }
-      return rows;
-    },
+    // Only IDs come back — never student responses or contact details — so the projector view is safe to show a room.
+    queryFn: async () => (questions.length ? getPresentationAnswers({ data: { quizId: quiz.id } }) : []),
   });
   useEffect(() => {
     if (!open && document.fullscreenElement === stage.current) void document.exitFullscreen();
@@ -67,7 +57,7 @@ export function QuizPresentation({ open, onOpenChange, quiz, questions, players,
       <DialogContent ref={stage} aria-describedby={undefined} className="inset-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-x-hidden overflow-y-auto rounded-none border-0 bg-background p-0 sm:rounded-none">
         <DialogTitle className="sr-only">{quiz.title} — live quiz display</DialogTitle>
         <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b-2 border-border px-5 py-4 pr-12 sm:px-8 sm:pr-14">
-          <span className="font-display text-2xl font-bold">Kọ́mì<span className="text-primary">nímọ̀</span></span>
+          <Brand asLink={false} className="text-2xl" />
           <div className="flex items-center gap-3 text-sm font-bold">
             <span className="flex items-center gap-2"><Users className="size-4" /> {players.length}</span>
             <Button variant="outline" size="icon" title="Enter full screen" aria-label="Enter full screen" onClick={async () => {

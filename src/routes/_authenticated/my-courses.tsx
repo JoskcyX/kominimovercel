@@ -6,17 +6,18 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
-import { formatPrice, slugify } from "@/lib/courses";
+import { SITE } from "@/config/site";
+import { formatPrice } from "@/lib/courses";
+import { createCourse as createCourseFn, listMyCourses } from "@/lib/courses.functions";
 
 export const Route = createFileRoute("/_authenticated/my-courses")({
   staticData: { sitemap: false },
   head: () => ({
     meta: [
-      { title: "My courses — Kominimo" },
+      { title: `My courses — ${SITE.name}` },
       { name: "description", content: "Create and publish video or written courses for your students." },
-      { property: "og:title", content: "My courses — Kominimo" },
-      { property: "og:description", content: "Create and publish courses on Kominimo." },
+      { property: "og:title", content: `My courses — ${SITE.name}` },
+      { property: "og:description", content: `Create and publish courses on ${SITE.name}.` },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -31,29 +32,11 @@ function TutorCourses() {
 
   const courses = useQuery({
     queryKey: ["my-courses"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("id, title, slug, price_cents, currency, is_published, created_at")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => listMyCourses(),
   });
 
   const createCourse = useMutation({
-    mutationFn: async (name: string) => {
-      const { data: userData } = await supabase.auth.getUser();
-      const tutorId = userData.user?.id;
-      if (!tutorId) throw new Error("Not signed in");
-      const { data, error } = await supabase
-        .from("courses")
-        .insert({ title: name, slug: slugify(name), tutor_id: tutorId })
-        .select("id")
-        .single();
-      if (error) throw error;
-      return data;
-    },
+    mutationFn: (name: string) => createCourseFn({ data: { title: name } }),
     onSuccess: (data) => {
       setTitle("");
       queryClient.invalidateQueries({ queryKey: ["my-courses"] });

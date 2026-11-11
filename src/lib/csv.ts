@@ -1,6 +1,12 @@
-function cell(value: unknown): string {
-  const text = value === null || value === undefined ? "" : String(value);
-  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+/**
+ * CSV cell, safe to open in Excel/Sheets. Student names are attacker-controlled, so a value that
+ * starts with = + - @ (or tab/CR) would otherwise run as a formula ("CSV injection"). We prefix
+ * those with an apostrophe, which spreadsheets treat as "this is text".
+ */
+export function cell(value: unknown): string {
+  let text = value === null || value === undefined ? "" : String(value);
+  if (/^[=+\-@\t\r]/.test(text) && !/^-?\d+(\.\d+)?$/.test(text)) text = `'${text}`;
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 export function toCsv(headers: string[], rows: unknown[][]): string {

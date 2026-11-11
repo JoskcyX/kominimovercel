@@ -7,18 +7,28 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { ConsentCheckbox } from "@/components/legal/ConsentCheckbox";
+import { Brand } from "@/components/site/Brand";
+import {
+  getSessionUser,
+  rememberSignupConsent,
+  resendVerificationEmail,
+  sendPasswordReset,
+  signInWithEmail,
+  signUpWithEmail,
+} from "@/lib/auth-client";
+import { SITE } from "@/config/site";
 
 export const Route = createFileRoute("/auth")({
   staticData: { sitemap: true },
   head: () => ({
     meta: [
-      { title: "Tutor sign in — Kominimo" },
+      { title: `Tutor sign in — ${SITE.name}` },
       {
         name: "description",
-        content: "Sign in or create a Kominimo tutor account to build quizzes and run live sessions.",
+        content: "Sign in or create a tutor account to build quizzes and run live sessions.",
       },
-      { property: "og:title", content: "Tutor sign in — Kominimo" },
+      { property: "og:title", content: `Tutor sign in — ${SITE.name}` },
       { property: "og:description", content: "Create quizzes and run live sessions with your class." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -45,11 +55,14 @@ function AuthPage() {
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState<null | "confirm" | "reset">(null);
+  const [agreed, setAgreed] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard", replace: true });
-    });
+    getSessionUser()
+      .then((user) => {
+        if (user) navigate({ to: "/dashboard", replace: true });
+      })
+      .catch(() => undefined);
   }, [navigate]);
 
   const friendlyError = (error: unknown) => {
@@ -78,19 +91,10 @@ function AuthPage() {
     const parsedEmail = emailSchema.safeParse(email);
     if (!parsedEmail.success) return;
     setBusy(true);
-    try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email: parsedEmail.data,
-        options: { emailRedirectTo: `${window.location.origin}/auth` },
-      });
-      if (error) throw error;
-      toast.success("Confirmation email sent again.");
-    } catch (error) {
-      toast.error(friendlyError(error));
-    } finally {
-      setBusy(false);
-    }
+    const result = await resendVerificationEmail(parsedEmail.data, `${window.location.origin}/auth`);
+    setBusy(false);
+    if (result.ok) toast.success("Confirmation email sent again.");
+    else toast.error(friendlyError(result.message));
   };
 
   const submit = async (event: React.FormEvent) => {
@@ -101,44 +105,41 @@ function AuthPage() {
       return;
     }
 
+    if (mode === "forgot") {
+      setBusy(true);
+      const result = await sendPasswordReset(parsedEmail.data, `${window.location.origin}/reset-password`);
+      setBusy(false);
+      // Same screen whether or not the account exists, so this can't be used to discover accounts.
+      if (!result.ok && !/not found|no user/i.test(result.message)) toast.error(friendlyError(result.message));
+      else setSent("reset");
+      return;
+    }
+
+    const parsedPassword = passwordSchema.safeParse(password);
+    if (!parsedPassword.success) {
+      toast.error(parsedPassword.error.issues[0]?.message ?? "Check your password");
+      return;
+    }
+    if (mode === "signup" && !agreed) {
+      toast.error("Please accept the Terms of Use and Privacy Policy to create your account.");
+      return;
+    }
+
     setBusy(true);
     try {
-      if (mode === "forgot") {
-        const { error } = await supabase.auth.resetPasswordForEmail(parsedEmail.data, {
-          redirectTo: `${window.location.origin}/reset-password`,
-        });
-        if (error) throw error;
-        setSent("reset");
-        return;
-      }
-
-      const parsedPassword = passwordSchema.safeParse(password);
-      if (!parsedPassword.success) {
-        toast.error(parsedPassword.error.issues[0]?.message ?? "Check your password");
-        return;
-      }
-
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
-          email: parsedEmail.data,
-          password: parsedPassword.data,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth`,
-            data: { display_name: displayName.trim() || parsedEmail.data.split("@")[0] },
-          },
-        });
-        if (error) throw error;
-        if (!data.session) {
+        const result = await signUpWithEmail(parsedEmail.data, parsedPassword.data, displayName.trim() || parsedEmail.data.split("@")[0]!);
+        if (!result.ok) throw result;
+        rememberSignupConsent();
+        const user = await getSessionUser();
+        if (!user) {
           setSent("confirm");
           return;
         }
         navigate({ to: "/dashboard", replace: true });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: parsedEmail.data,
-          password,
-        });
-        if (error) throw error;
+        const result = await signInWithEmail(parsedEmail.data, password);
+        if (!result.ok) throw result;
         navigate({ to: "/dashboard", replace: true });
       }
     } catch (error) {
@@ -194,9 +195,7 @@ function AuthPage() {
   return (
     <div className="grid min-h-screen place-items-center confetti-bg px-4 py-6 sm:px-6 sm:py-12">
       <div className="pop-in w-full max-w-md surface-card p-5 sm:p-8">
-        <p className="font-display text-2xl font-bold">
-          Kọ́mì<span className="text-primary">nímọ̀</span>
-        </p>
+        <Brand className="text-2xl" />
         <h1 className="mt-4 text-3xl font-bold">
           {mode === "signin"
             ? "Welcome back, tutor"
@@ -257,7 +256,8 @@ function AuthPage() {
               )}
             </div>
           )}
-          <Button type="submit" disabled={busy} className="chunky h-12 w-full rounded-xl text-base font-bold">
+          {mode === "signup" && <ConsentCheckbox id="signup-consent" checked={agreed} onChange={setAgreed} />}
+          <Button type="submit" disabled={busy || (mode === "signup" && !agreed)} className="chunky h-12 w-full rounded-xl text-base font-bold">
             {busy
               ? "Please wait…"
               : mode === "signin"

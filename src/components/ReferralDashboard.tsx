@@ -3,8 +3,8 @@ import { Copy, Gift, TrendingUp, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { REFERRAL_SPLIT, formatMoney } from "@/lib/plans";
+import { REFERRAL_SPLIT, formatMoney } from "@/config/plans";
+import { getReferralList, getReferralSummary } from "@/lib/me.functions";
 
 type Summary = {
   referral_code: string | null;
@@ -24,20 +24,12 @@ type ReferredRow = {
 export function ReferralDashboard() {
   const summary = useQuery({
     queryKey: ["referral-summary"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("my_referral_summary");
-      if (error) throw error;
-      return (Array.isArray(data) ? data[0] : null) as Summary | null;
-    },
+    queryFn: async () => (await getReferralSummary()) as Summary | null,
   });
 
   const list = useQuery({
     queryKey: ["referral-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("my_referral_list");
-      if (error) throw error;
-      return (data ?? []) as ReferredRow[];
-    },
+    queryFn: async () => (await getReferralList()) as ReferredRow[],
   });
 
   const code = summary.data?.referral_code ?? null;

@@ -2,9 +2,9 @@ import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
 
-export function ConfirmAction({ open, onOpenChange, title, description, label = "Delete", pending, onConfirm }: {
+export function ConfirmAction({ open, onOpenChange, title, description, label = "Delete", pending, onConfirm, children }: {
   open: boolean; onOpenChange: (open: boolean) => void; title: string; description: string;
-  label?: string; pending: boolean; onConfirm: () => void;
+  label?: string; pending: boolean; onConfirm: () => void; children?: React.ReactNode;
 }) {
   return <AlertDialog open={open} onOpenChange={(value) => { if (!pending) onOpenChange(value); }}>
     <AlertDialogContent className="max-w-[calc(100%-2rem)] rounded-lg border-2 bg-card sm:max-w-md">
@@ -13,6 +13,7 @@ export function ConfirmAction({ open, onOpenChange, title, description, label = 
         <AlertDialogTitle className="break-words font-display text-2xl">{title}</AlertDialogTitle>
         <AlertDialogDescription className="break-words">{description}</AlertDialogDescription>
       </AlertDialogHeader>
+      {children}
       <AlertDialogFooter className="gap-2">
         <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
         <Button variant="destructive" disabled={pending} onClick={onConfirm}>{pending ? "Please wait…" : label}</Button>

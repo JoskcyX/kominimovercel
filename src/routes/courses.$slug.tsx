@@ -1,21 +1,23 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
 import { CheckCircle2, CreditCard, FileText, Lock, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { embedUrl, formatPrice, type Lesson } from "@/lib/courses";
+import { Brand } from "@/components/site/Brand";
+import { SITE } from "@/config/site";
+import { embedUrl, formatPrice } from "@/lib/courses";
+import { enrollInCourse, getCourseBySlug } from "@/lib/courses.functions";
+import { getSessionUser } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/courses/$slug")({
   staticData: { sitemap: false },
   head: () => ({
     meta: [
-      { title: "Course — Kominimo" },
-      { name: "description", content: "Watch video lessons and read written material from an Kominimo tutor." },
-      { property: "og:title", content: "Course — Kominimo" },
-      { property: "og:description", content: "Video and written lessons on Kominimo." },
+      { title: `Course — ${SITE.name}` },
+      { name: "description", content: "Watch video lessons and read written material from a tutor." },
+      { property: "og:title", content: `Course — ${SITE.name}` },
+      { property: "og:description", content: `Video and written lessons on ${SITE.name}.` },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -27,80 +29,41 @@ function CoursePage() {
   const { slug } = Route.useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [userId, setUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
-  }, []);
-
+  // The server returns the course, its lessons (paid content withheld until enrolled) and your enrolment in one call.
   const course = useQuery({
     queryKey: ["course", slug],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("id, title, slug, summary, cover_url, price_cents, currency")
-        .eq("slug", slug)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getCourseBySlug({ data: { slug } }),
   });
+  const lessons = { data: course.data?.lessons };
+  const enrollment = { data: course.data?.enrollment ?? null };
+  const courseId = course.data?.course.id;
 
-  const courseId = course.data?.id;
-
-  const lessons = useQuery({
-    queryKey: ["lessons", courseId],
-    enabled: !!courseId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("lessons")
-        .select("id, course_id, order_index, title, kind, video_url, body")
-        .eq("course_id", courseId!)
-        .order("order_index", { ascending: true });
-      if (error) throw error;
-      return data as Lesson[];
-    },
-  });
-
-  const enrollment = useQuery({
-    queryKey: ["enrollment", courseId, userId],
-    enabled: !!courseId && !!userId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("enrollments")
-        .select("id, status")
-        .eq("course_id", courseId!)
-        .eq("student_id", userId!)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const isPaid = (course.data?.price_cents ?? 0) > 0;
+  const isPaid = (course.data?.course.price_cents ?? 0) > 0;
   const hasAccess = enrollment.data?.status === "free" || enrollment.data?.status === "paid";
 
   const enrollFree = async () => {
-    if (!userId) {
+    const user = await getSessionUser().catch(() => null);
+    if (!user) {
       navigate({ to: "/auth" });
       return;
     }
-    const { error } = await supabase
-      .from("enrollments")
-      .insert({ course_id: courseId!, student_id: userId, status: "free" });
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await enrollInCourse({ data: { courseId: courseId! } });
       toast.success("You're enrolled — enjoy the course!");
-      queryClient.invalidateQueries({ queryKey: ["enrollment", courseId, userId] });
+      queryClient.invalidateQueries({ queryKey: ["course", slug] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not enrol");
     }
   };
 
-  const buy = () => {
-    if (!userId) {
+  const buy = async () => {
+    const user = await getSessionUser().catch(() => null);
+    if (!user) {
       navigate({ to: "/auth" });
       return;
     }
-    toast.info("Card checkout isn't connected yet — payments need to be enabled on this project.");
+    toast.info("Card checkout isn't available yet. Contact us and we'll help you get access.");
   };
 
   if (course.isLoading) {
@@ -118,12 +81,11 @@ function CoursePage() {
     );
   }
 
+  const data = course.data.course;
   return (
     <div className="min-h-screen confetti-bg">
       <header className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-6">
-        <Link to="/" className="font-display text-2xl font-bold">
-          Kọ́mì<span className="text-primary">nímọ̀</span>
-        </Link>
+        <Brand className="text-2xl" />
         <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">
           <Link to="/courses">All courses</Link>
         </Button>
@@ -131,12 +93,12 @@ function CoursePage() {
 
       <main className="mx-auto max-w-5xl px-4 pb-24 sm:px-6">
         <div className="chunky rounded-2xl border-2 bg-card p-4 sm:p-8">
-          <h1 className="break-words font-display text-3xl font-bold sm:text-4xl">{course.data.title}</h1>
-          <p className="mt-3 text-lg text-muted-foreground">{course.data.summary}</p>
+          <h1 className="break-words font-display text-3xl font-bold sm:text-4xl">{data.title}</h1>
+          <p className="mt-3 text-lg text-muted-foreground">{data.summary}</p>
 
           <div className="mt-6 flex flex-wrap items-center gap-4">
             <span className="font-display text-2xl font-bold text-primary">
-              {formatPrice(course.data.price_cents, course.data.currency)}
+              {formatPrice(data.price_cents, data.currency)}
             </span>
             {hasAccess ? (
               <span className="flex items-center gap-2 font-bold text-secondary-foreground">

@@ -4,22 +4,24 @@ import { CreditCard, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { PRO_TIER, REFERRAL_SPLIT, formatMoney, isPro } from "@/lib/plans";
+import { Brand } from "@/components/site/Brand";
+import { SITE } from "@/config/site";
+import { PRO_TIER, REFERRAL_SPLIT, formatMoney, isPro } from "@/config/plans";
+import { getReferralSummary } from "@/lib/me.functions";
 import { usePlan } from "@/hooks/usePlan";
 
 export const Route = createFileRoute("/_authenticated/upgrade")({
   staticData: { sitemap: false },
   head: () => ({
     meta: [
-      { title: "Upgrade to Pro — Kominimo" },
+      { title: `Upgrade to Pro — ${SITE.name}` },
       {
         name: "description",
         content:
-          "Upgrade to Kominimo Pro for unlimited quizzes, CSV analytics and a 20% referral income stream.",
+          `Upgrade to ${SITE.name} Pro for bigger classes, unlimited quizzes and a 20% referral income stream.`,
       },
-      { property: "og:title", content: "Upgrade to Pro — Kominimo" },
-      { property: "og:description", content: "Explore Kominimo Pro for tutors." },
+      { property: "og:title", content: `Upgrade to Pro — ${SITE.name}` },
+      { property: "og:description", content: `Explore ${SITE.name} Pro for tutors.` },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -33,19 +35,7 @@ function UpgradePage() {
 
   const referralSummary = useQuery({
     queryKey: ["referral-summary"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("my_referral_summary");
-      if (error) throw error;
-      return (Array.isArray(data) ? data[0] : null) as
-        | {
-            referral_code: string | null;
-            total_referred: number;
-            pro_referred: number;
-            earnings_pending_cents: number;
-            earnings_paid_cents: number;
-          }
-        | null;
-    },
+    queryFn: () => getReferralSummary(),
     enabled: isPro(me?.plan),
   });
 
@@ -65,7 +55,7 @@ function UpgradePage() {
       <div className="min-h-screen confetti-bg">
         <header className="mx-auto grid max-w-4xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-4 sm:px-6 sm:py-6">
           <Link to="/dashboard" className="font-display text-xl font-bold sm:text-2xl">
-            Kọ́mì<span className="text-primary">nímọ̀</span>
+            <Brand className="text-2xl" />
           </Link>
           <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">
             <Link to="/dashboard">Dashboard</Link>
@@ -79,7 +69,7 @@ function UpgradePage() {
             </span>
             <h1 className="mt-4 font-display text-3xl font-bold">You're on Pro 🎉</h1>
             <p className="mt-2 text-muted-foreground">
-              Unlimited quizzes, CSV exports and white-label are unlocked.
+              Bigger classes, unlimited quizzes and larger uploads are unlocked.
             </p>
           </div>
 
@@ -118,7 +108,7 @@ function UpgradePage() {
     <div className="min-h-screen confetti-bg">
       <header className="mx-auto grid max-w-4xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-4 py-4 sm:px-6 sm:py-6">
         <Link to="/dashboard" className="font-display text-xl font-bold sm:text-2xl">
-          Kọ́mì<span className="text-primary">nímọ̀</span>
+          <Brand className="text-2xl" />
         </Link>
         <Button asChild variant="outline" className="chunky rounded-full border-2 font-bold">
           <Link to="/dashboard">Back</Link>
@@ -169,14 +159,14 @@ function UpgradePage() {
                 className="chunky mt-4 w-full rounded-xl font-bold"
                 onClick={() =>
                   toast.info(
-                    "Card checkout isn't connected yet — payments need to be enabled on this project.",
+                    "Card checkout isn't available yet — contact us and we'll set up Pro for you.",
                   )
                 }
               >
                 <CreditCard className="size-4" /> Pay {formatMoney(PRO_TIER.priceCents, PRO_TIER.currency)}
               </Button>
               <p className="mt-3 text-center text-xs text-muted-foreground">
-                You won't be charged until live payments are connected.
+                You won't be charged — card checkout isn't live yet. Contact us to get Pro set up.
               </p>
             </div>
           </div>

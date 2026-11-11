@@ -1,26 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ShieldCheck } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { listRepActions, setClassRep } from "@/lib/classes.functions";
 
 export function ClassRepSettings({ classId, repId, students }: { classId: string; repId: string | null; students: { id: string; name: string }[] }) {
   const qc = useQueryClient();
   const log = useQuery({
     queryKey: ["class", classId, "rep-log"],
     refetchInterval: 8000,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("class_rep_actions").select("*").eq("class_id", classId).order("created_at", { ascending: false }).limit(50);
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => listRepActions({ data: { classId } }),
   });
   const setRep = useMutation({
-    mutationFn: async (id: string | null) => {
-      const { error } = await supabase.from("classes").update({ rep_member_id: id }).eq("id", classId);
-      if (error) throw error;
-    },
+    mutationFn: async (id: string | null) => { await setClassRep({ data: { classId, memberId: id } }); },
     onSuccess: (_d, id) => { qc.invalidateQueries({ queryKey: ["class", classId] }); toast.success(id ? "Class rep set — join requests now go to them" : "Class rep removed — join requests come to you"); },
-    onError: () => toast.error("Could not update class rep"),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not update class rep"),
   });
   return (
     <section className="surface-card mt-8 grid gap-3 p-4">

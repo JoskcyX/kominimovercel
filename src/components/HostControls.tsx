@@ -3,7 +3,7 @@ import { Eye, EyeOff, FastForward, Pause, Play, PlusCircle } from "lucide-react"
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { quizAction } from "@/lib/quizzes.functions";
 
 type ControlQuiz = {
   paused: boolean;
@@ -25,23 +25,18 @@ export function HostControls({
   const [busy, setBusy] = useState(false);
   const live = quiz.status === "live";
 
-  const patch = async (
-    values: Partial<{
-      paused: boolean;
-      reveal_answers: boolean;
-      skip_signal: number;
-      extend_signal: number;
-      extend_seconds: number;
-    }>,
-    message: string,
-  ) => {
+  type Action = "pause" | "resume" | "next" | "extend15" | "extend30" | "reveal_on" | "reveal_off";
+  // The host sends an intent; the server decides the new state (no arbitrary column writes from the browser).
+  const act = async (action: Action, message: string) => {
     setBusy(true);
-    const { error } = await supabase.from("quizzes").update(values).eq("id", quizId);
-    setBusy(false);
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await quizAction({ data: { quizId, action } });
       toast.success(message);
       onChanged();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "That didn't work");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -55,7 +50,7 @@ export function HostControls({
         <Button
           variant={quiz.paused ? "default" : "outline"}
           disabled={busy || !live}
-          onClick={() => patch({ paused: !quiz.paused }, quiz.paused ? "Resumed" : "Paused for everyone")}
+          onClick={() => act(quiz.paused ? "resume" : "pause", quiz.paused ? "Resumed" : "Paused for everyone")}
           className="chunky rounded-xl border-2 font-bold"
         >
           {quiz.paused ? <Play className="size-4" /> : <Pause className="size-4" />}
@@ -65,7 +60,7 @@ export function HostControls({
         <Button
           variant="outline"
           disabled={busy || !live || quiz.paused}
-          onClick={() => patch({ skip_signal: quiz.skip_signal + 1 }, "Next question for everyone")}
+          onClick={() => act("next", "Next question for everyone")}
           className="chunky rounded-xl border-2 font-bold"
         >
           <FastForward className="size-4" /> Next question
@@ -77,10 +72,7 @@ export function HostControls({
             variant="outline"
             disabled={busy || !live}
             onClick={() =>
-              patch(
-                { extend_seconds: seconds, extend_signal: quiz.extend_signal + 1 },
-                `Added ${seconds}s to this question`,
-              )
+              act(seconds === 15 ? "extend15" : "extend30", `Added ${seconds}s to this question`)
             }
             className="chunky rounded-xl border-2 font-bold"
           >
@@ -92,8 +84,8 @@ export function HostControls({
           variant={quiz.reveal_answers ? "default" : "outline"}
           disabled={busy}
           onClick={() =>
-            patch(
-              { reveal_answers: !quiz.reveal_answers },
+            act(
+              quiz.reveal_answers ? "reveal_off" : "reveal_on",
               quiz.reveal_answers ? "Answers hidden" : "Answers revealed after each question",
             )
           }

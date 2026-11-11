@@ -7,26 +7,33 @@ import { Button } from "@/components/ui/button";
 import { ConfirmAction } from "@/components/ConfirmAction";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  addResource, deleteResource, listResources, presentResource, setResourceVisible,
+} from "@/lib/classes.functions";
+import { confirmUpload, createUploadUrl, getTutorFileUrl } from "@/lib/files.functions";
 import { embedUrl } from "@/lib/courses";
 import { PdfPage, isPdf } from "@/components/PdfPage";
 
 type Kind = "link" | "note" | "video" | "document";
 type Res = { id: string; title: string; kind: Kind; url: string | null; body: string; visible: boolean };
 
-const BUCKET = "class-videos";
-
-export function useFileUrl(url: string | null) {
+/** Resolves a resource to something the browser can open: plain https links as-is, uploaded files via a short-lived signed URL. */
+export function useFileUrl(res: { id: string; url: string | null } | null) {
   const [src, setSrc] = useState<string | null>(null);
+  const url = res?.url ?? null;
+  const id = res?.id ?? null;
   useEffect(() => {
-    if (!url?.startsWith("storage:")) { setSrc(url); return; }
-    supabase.storage.from(BUCKET).createSignedUrl(url.slice(8), 60 * 60 * 3).then(({ data }) => setSrc(data?.signedUrl ?? null));
-  }, [url]);
+    if (!url) { setSrc(null); return; }
+    if (!url.startsWith("storage:")) { setSrc(url); return; }
+    let live = true;
+    getTutorFileUrl({ data: { resourceId: id! } }).then((r) => live && setSrc(r.url)).catch(() => live && setSrc(null));
+    return () => { live = false; };
+  }, [url, id]);
   return src;
 }
 
 function TutorView({ r }: { r: Res }) {
-  const src = useFileUrl(r.url);
+  const src = useFileUrl(r);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(0);
   if (r.kind === "note") return <p className="whitespace-pre-wrap text-sm text-muted-foreground">{r.body}</p>;
@@ -48,7 +55,7 @@ function TutorView({ r }: { r: Res }) {
       </div>
     );
   }
-  return <a href={src} target="_blank" rel="noreferrer" className="break-all text-sm font-bold text-secondary underline">Open file</a>;
+  return <a href={src} target="_blank" rel="noopener noreferrer" className="break-all text-sm font-bold text-secondary underline">Open file</a>;
 }
 
 export function ClassMaterials({ classId, presentingId, presentingPage }: { classId: string; presentingId: string | null; presentingPage: number }) {
@@ -56,11 +63,7 @@ export function ClassMaterials({ classId, presentingId, presentingPage }: { clas
   const inv = () => qc.invalidateQueries({ queryKey: ["class", classId] });
   const resources = useQuery({
     queryKey: ["class", classId, "resources"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("class_resources").select("*").eq("class_id", classId).order("order_index");
-      if (error) throw error;
-      return data as Res[];
-    },
+    queryFn: async () => (await listResources({ data: { classId } })) as Res[],
   });
 
   const [title, setTitle] = useState("");
@@ -74,44 +77,40 @@ export function ClassMaterials({ classId, presentingId, presentingPage }: { clas
 
   const add = useMutation({
     mutationFn: async () => {
-      let u = url.trim() || null;
+      const name = title.trim() || file?.name || "Untitled";
       if (file && (kind === "video" || kind === "document")) {
-        if (file.size > 1024 * 1024 * 1024) throw new Error("File is over 1GB");
-        const path = `${classId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-        const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type || "application/octet-stream" });
-        if (error) throw error;
-        u = `storage:${path}`;
+        // 1) ask for a short-lived upload slot  2) send the bytes straight to storage  3) server verifies and records it
+        const contentType = file.type || "application/octet-stream";
+        const slot = await createUploadUrl({ data: { classId, filename: file.name, contentType, size: file.size } });
+        const put = await fetch(slot.uploadUrl, { method: "PUT", headers: { "Content-Type": slot.contentType }, body: file });
+        if (!put.ok) throw new Error("The upload didn't complete. Please try again.");
+        await confirmUpload({ data: { classId, key: slot.key, title: name, visible: !hidden } });
+        return;
       }
-      if (kind === "document" && !u) throw new Error("Choose a file to upload");
-      if (kind === "video" && !u) throw new Error("Upload a video or paste a link");
-      const { error } = await supabase.from("class_resources").insert({
-        class_id: classId, title: title.trim() || file?.name || "Untitled", kind, url: u, body: body.trim(),
-        order_index: resources.data?.length ?? 0, visible: !hidden,
-      });
-      if (error) throw error;
+      const link = url.trim() || null;
+      if (kind === "document" && !link) throw new Error("Choose a file to upload");
+      if (kind === "video" && !link) throw new Error("Upload a video or paste a link");
+      await addResource({ data: { classId, title: name, kind, url: link, body: body.trim(), visible: !hidden } });
     },
     onSuccess: () => { setTitle(""); setUrl(""); setBody(""); setFile(null); inv(); toast.success("Material added"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Upload failed"),
   });
   const del = useMutation({
-    mutationFn: async (id: string) => { const { error } = await supabase.from("class_resources").delete().eq("id", id); if (error) throw error; },
+    mutationFn: async (id: string) => { await deleteResource({ data: { id } }); },
     onSuccess: () => { setDeleting(null); inv(); toast.success("Material deleted"); },
     onError: () => toast.error("Could not delete this material. Please try again."),
   });
   const toggle = useMutation({
-    mutationFn: async (r: Res) => { const { error } = await supabase.from("class_resources").update({ visible: !r.visible }).eq("id", r.id); if (error) throw error; },
+    mutationFn: async (r: Res) => { await setResourceVisible({ data: { id: r.id, visible: !r.visible } }); },
     onSuccess: inv,
   });
   const present = useMutation({
-    mutationFn: async (v: { id: string | null; page: number }) => {
-      const { error } = await supabase.from("classes").update({ presenting_resource_id: v.id, presenting_page: v.page }).eq("id", classId);
-      if (error) throw error;
-    },
+    mutationFn: async (v: { id: string | null; page: number }) => { await presentResource({ data: { classId, resourceId: v.id, page: v.page } }); },
     onSuccess: inv,
   });
 
   const presenting = resources.data?.find((r) => r.id === presentingId) ?? null;
-  const presentSrc = useFileUrl(presenting?.url ?? null);
+  const presentSrc = useFileUrl(presenting);
   const [pages, setPages] = useState(0);
   const go = (p: number) => present.mutate({ id: presentingId, page: Math.max(1, pages ? Math.min(p, pages) : p) });
 

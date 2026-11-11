@@ -6,21 +6,23 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { Brand } from "@/components/site/Brand";
+import { SITE } from "@/config/site";
+import { completePasswordReset } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/reset-password")({
   staticData: { sitemap: false },
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Set a new password — Kominimo" },
+      { title: `Set a new password — ${SITE.name}` },
       { name: "robots", content: "noindex" },
       {
         name: "description",
-        content: "Choose a new password for your Kominimo tutor account using your secure reset link.",
+        content: "Choose a new password for your tutor account using your secure reset link.",
       },
-      { property: "og:title", content: "Set a new password — Kominimo" },
-      { property: "og:description", content: "Choose a new password for your Kominimo tutor account." },
+      { property: "og:title", content: `Set a new password — ${SITE.name}` },
+      { property: "og:description", content: "Choose a new password for your tutor account." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -43,24 +45,16 @@ function ResetPasswordPage() {
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const [token, setToken] = useState<string | null>(null);
   useEffect(() => {
-    let active = true;
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!active) return;
-      if (event === "PASSWORD_RECOVERY" || session) {
-        setValid(true);
-        setReady(true);
-      }
-    });
-    supabase.auth.getSession().then(({ data: sessionData }) => {
-      if (!active) return;
-      setValid(Boolean(sessionData.session));
-      setReady(true);
-    });
-    return () => {
-      active = false;
-      data.subscription.unsubscribe();
-    };
+    // The emailed link carries ?token=… (or ?error=… when it is invalid/expired).
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("token");
+    setToken(t && !params.get("error") ? t : null);
+    setValid(Boolean(t && !params.get("error")));
+    setReady(true);
+    // Don't leave the one-time token sitting in the address bar / history.
+    if (t) window.history.replaceState(null, "", window.location.pathname);
   }, []);
 
   const submit = async (event: React.FormEvent) => {
@@ -75,29 +69,20 @@ function ResetPasswordPage() {
       return;
     }
     setBusy(true);
-    try {
-      const { error } = await supabase.auth.updateUser({ password: parsed.data });
-      if (error) throw error;
-      toast.success("Password updated — you're signed in.");
-      navigate({ to: "/dashboard", replace: true });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Something went wrong";
-      toast.error(
-        /pwned|compromised/i.test(message)
-          ? "That password has appeared in a known data breach. Please choose a different one."
-          : message,
-      );
-    } finally {
-      setBusy(false);
+    const result = await completePasswordReset(token ?? "", parsed.data);
+    setBusy(false);
+    if (!result.ok) {
+      toast.error(/pwned|compromised/i.test(result.message) ? "That password has appeared in a known data breach. Please choose a different one." : result.message);
+      return;
     }
+    toast.success("Password updated — please sign in with your new password.");
+    navigate({ to: "/auth", replace: true });
   };
 
   return (
     <div className="grid min-h-screen place-items-center confetti-bg px-4 py-6 sm:px-6 sm:py-12">
       <div className="pop-in w-full max-w-md surface-card p-5 sm:p-8">
-        <p className="font-display text-2xl font-bold">
-          Kọ́mì<span className="text-primary">nímọ̀</span>
-        </p>
+        <Brand className="text-2xl" />
         <h1 className="mt-4 text-3xl font-bold">Set a new password</h1>
 
         {!ready ? (

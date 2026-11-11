@@ -1,4 +1,4 @@
-export type QuizClock = { id: string; status: string; paused: boolean; skip_signal: number; question_deadline_at: string | null; question_paused_at: string | null };
+export type QuizClock = { id: string; status: string; paused: boolean; skip_signal: number; question_deadline_at: string | null; question_paused_at: string | null; /** Server clock when this state was read — corrects for a wrong device clock. */ server_now?: string };
 
 export function questionSecondsLeft(quiz: QuizClock, now: number) {
   if (!quiz.question_deadline_at) return null;

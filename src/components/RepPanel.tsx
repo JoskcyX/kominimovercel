@@ -3,23 +3,25 @@ import { toast } from "sonner";
 import { Check, ShieldCheck, UserMinus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmAction } from "@/components/ConfirmAction";
-import { supabase } from "@/integrations/supabase/client";
+import { repGetMembers, repRemove, repSetStatus } from "@/lib/member.functions";
 import { isRecentlyPresent } from "@/lib/live-connection";
 
 export type RepMember = { id: string; name: string; phone: string; status: "pending" | "approved" | "rejected"; last_seen_at: string | null; left_at: string | null };
 
 /** Polls the rep's class; returns null when this student is not the class rep. */
-export function useRepMembers(memberId: string | null) {
+/** `token` is the student's signed session token (not their id). */
+export function useRepMembers(token: string | null) {
   const [members, setMembers] = useState<RepMember[] | null>(null);
   const load = useCallback(async () => {
-    if (!memberId) return;
-    const { data: cid } = await supabase.rpc("rep_class_id", { _rep_id: memberId });
-    if (!cid) { setMembers(null); return; }
-    const { data } = await supabase.rpc("rep_members", { _rep_id: memberId });
-    setMembers((data as RepMember[]) ?? []);
-  }, [memberId]);
+    if (!token) return;
+    try {
+      setMembers(await repGetMembers({ data: { token } })); // null when this student isn't the rep
+    } catch {
+      /* keep last known list through a blip */
+    }
+  }, [token]);
   useEffect(() => {
-    load();
+    void load();
     const t = setInterval(load, 4000);
     return () => clearInterval(t);
   }, [load]);
@@ -34,11 +36,14 @@ export function useRepMembers(memberId: string | null) {
   return { members, reload: load };
 }
 
-export function RepJoinNotices({ repId, members, reload }: { repId: string; members: RepMember[]; reload: () => void }) {
+export function RepJoinNotices({ token, members, reload }: { token: string; members: RepMember[]; reload: () => void }) {
   const pending = members.filter((m) => m.status === "pending");
   const decide = async (id: string, status: "approved" | "rejected") => {
-    const { error } = await supabase.rpc("rep_set_member_status", { _rep_id: repId, _member_id: id, _status: status });
-    if (error) toast.error("Could not update request");
+    try {
+      await repSetStatus({ data: { token, memberId: id, status } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update request");
+    }
     reload();
   };
   if (!pending.length) return null;
@@ -57,17 +62,22 @@ export function RepJoinNotices({ repId, members, reload }: { repId: string; memb
   );
 }
 
-export function RepPanel({ repId, members, reload }: { repId: string; members: RepMember[]; reload: () => void }) {
+export function RepPanel({ token, selfId, members, reload }: { token: string; selfId: string; members: RepMember[]; reload: () => void }) {
   const [removing, setRemoving] = useState<RepMember | null>(null);
   const [busy, setBusy] = useState(false);
-  const approved = members.filter((m) => m.status === "approved" && m.id !== repId);
+  const approved = members.filter((m) => m.status === "approved" && m.id !== selfId);
   const pending = members.filter((m) => m.status === "pending");
   const remove = async () => {
     if (!removing) return;
     setBusy(true);
-    const { error } = await supabase.rpc("rep_remove_member", { _rep_id: repId, _member_id: removing.id });
+    try {
+      await repRemove({ data: { token, memberId: removing.id } });
+    } catch (e) {
+      setBusy(false);
+      toast.error(e instanceof Error ? e.message : "Could not remove student");
+      return;
+    }
     setBusy(false);
-    if (error) { toast.error("Could not remove student"); return; }
     toast.success(`${removing.name} removed`);
     setRemoving(null);
     reload();
@@ -78,7 +88,7 @@ export function RepPanel({ repId, members, reload }: { repId: string; members: R
       <div className="flex items-center gap-2"><ShieldCheck className="size-6 shrink-0 text-secondary" /><div><p className="text-lg font-bold">You're the class rep</p><p className="text-xs text-muted-foreground">Your tutor sees everything you do here. In the video, you can also mute students.</p></div></div>
       <div className="grid gap-2">
         <p className="font-bold">Join requests ({pending.length})</p>
-        {pending.length === 0 ? <p className="text-sm text-muted-foreground">No one is waiting.</p> : <RepJoinNotices repId={repId} members={members} reload={reload} />}
+        {pending.length === 0 ? <p className="text-sm text-muted-foreground">No one is waiting.</p> : <RepJoinNotices token={token} members={members} reload={reload} />}
       </div>
       <div className="grid gap-2">
         <p className="font-bold">Students ({approved.length})</p>

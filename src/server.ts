@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { applySecurityHeaders } from "./server/security-headers";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -44,18 +45,59 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+/**
+ * Per-request CSP nonce. The router (src/router.tsx) reads it from this AsyncLocalStorage so every
+ * inline script TanStack Start emits carries the nonce. Where AsyncLocalStorage isn't available we
+ * fall back to a CSP that allows inline scripts (still blocks everything else).
+ */
+type NonceStore = {
+  run<T>(store: { nonce: string }, fn: () => T): T;
+  getStore(): { nonce: string } | undefined;
+};
+let nonceStore: NonceStore | null = null;
+const nonceReady = (async () => {
+  try {
+    const { AsyncLocalStorage } = await import("node:async_hooks");
+    nonceStore = new AsyncLocalStorage<{ nonce: string }>() as NonceStore;
+    (globalThis as { __cspNonceStore?: NonceStore }).__cspNonceStore = nonceStore;
+  } catch {
+    nonceStore = null;
+  }
+})();
+
+const newNonce = () => btoa(crypto.randomUUID());
+const PROD = import.meta.env.PROD;
+
+function harden(response: Response, request: Request, nonce: string | null): Response {
+  if (!PROD) return response;
+  try {
+    return applySecurityHeaders(response, new URL(request.url), nonce);
+  } catch (e) {
+    console.error("[security-headers]", e);
+    return response;
+  }
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    await nonceReady;
+    const nonce = PROD && nonceStore ? newNonce() : null;
     try {
       const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const run = () => handler.fetch(request, env, ctx);
+      const response =
+        nonce && nonceStore ? await nonceStore.run({ nonce }, async () => run()) : await run();
+      return harden(await normalizeCatastrophicSsrResponse(response), request, nonce);
     } catch (error) {
       console.error(error);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      return harden(
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+        request,
+        null,
+      );
     }
   },
 };

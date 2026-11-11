@@ -1,12 +1,19 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { PlanId } from "@/lib/plans";
+import { getMe, attributeReferral } from "@/lib/me.functions";
+import type { PlanId } from "@/config/plans";
 
-export type PlanProfile = {
+export type Me = {
+  userId: string;
+  email: string | null;
+  displayName: string;
   plan: PlanId;
-  referral_code: string | null;
-  referred_by: string | null;
+  status: "active" | "suspended";
+  roles: string[];
+  isAdmin: boolean;
+  referralCode: string | null;
+  referredBy: string | null;
+  legalOk: boolean;
 };
 
 const REF_KEY = "edxka_ref_code";
@@ -14,17 +21,15 @@ const REF_KEY = "edxka_ref_code";
 /** Capture a ?ref= code from the URL into localStorage for signup attribution. */
 export function captureReferralCode() {
   if (typeof window === "undefined") return;
-  const params = new URLSearchParams(window.location.search);
-  const ref = params.get("ref");
-  if (ref && /^[a-zA-Z0-9-]{3,40}$/.test(ref)) {
+  const ref = new URLSearchParams(window.location.search).get("ref");
+  if (ref && /^[a-zA-Z0-9-]{3,60}$/.test(ref)) {
     try {
       window.localStorage.setItem(REF_KEY, ref);
     } catch {
-      /* ignore storage errors */
+      /* storage blocked */
     }
   }
 }
-
 export function getStoredRefCode(): string | null {
   if (typeof window === "undefined") return null;
   try {
@@ -33,7 +38,6 @@ export function getStoredRefCode(): string | null {
     return null;
   }
 }
-
 export function clearStoredRefCode() {
   if (typeof window === "undefined") return;
   try {
@@ -43,54 +47,45 @@ export function clearStoredRefCode() {
   }
 }
 
-export function usePlan() {
-  const queryClient = useQueryClient();
+export const ME_KEY = ["me"] as const;
 
+/** The signed-in user's profile, plan, roles and legal status (cached for a minute). */
+export function useMe() {
+  const queryClient = useQueryClient();
   const query = useQuery({
-    queryKey: ["plan"],
-    queryFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
-      if (!userId) return null;
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("plan, referral_code, referred_by")
-        .eq("id", userId)
-        .maybeSingle();
-      if (error) throw error;
-      return (data as PlanProfile | null) ?? null;
-    },
+    queryKey: ME_KEY,
+    queryFn: () => getMe() as Promise<Me>,
     staleTime: 60_000,
   });
 
-  // Attribute a stored referral code to the signed-in tutor's profile once.
+  // Credit a stored referral code to this account — once, atomically, on the server.
   useEffect(() => {
-    const profile = query.data;
-    if (!profile) return;
-    const refCode = getStoredRefCode();
-    if (!refCode || profile.referred_by) return;
+    const me = query.data;
+    const code = getStoredRefCode();
+    if (!me || !code || me.referredBy) return;
     let cancelled = false;
-    (async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
-      if (!userId) return;
-      const { data: referrer } = await supabase.rpc("resolve_referral_code", { _code: refCode });
-      const referrerId = Array.isArray(referrer) ? referrer[0]?.id : null;
-      if (!referrerId || referrerId === userId) return;
-      const { error } = await supabase
-        .from("profiles")
-        .update({ referred_by: referrerId })
-        .eq("id", userId)
-        .is("referred_by", null);
-      if (!cancelled && !error) {
+    attributeReferral({ data: { code } })
+      .then(() => {
+        if (cancelled) return;
         clearStoredRefCode();
-        queryClient.invalidateQueries({ queryKey: ["plan"] });
-      }
-    })();
+        queryClient.invalidateQueries({ queryKey: ME_KEY });
+      })
+      .catch(() => undefined);
     return () => {
       cancelled = true;
     };
   }, [query.data, queryClient]);
 
   return query;
+}
+
+/** Back-compat shape used by the upgrade page. */
+export function usePlan() {
+  const q = useMe();
+  return {
+    ...q,
+    data: q.data
+      ? { plan: q.data.plan, referral_code: q.data.referralCode, referred_by: q.data.referredBy }
+      : null,
+  };
 }

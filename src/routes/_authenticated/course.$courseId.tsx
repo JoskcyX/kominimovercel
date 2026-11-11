@@ -7,17 +7,20 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
-import { formatPrice, type Lesson, type LessonKind } from "@/lib/courses";
+import { SITE } from "@/config/site";
+import { formatPrice, type LessonKind } from "@/lib/courses";
+import {
+  addLesson as addLessonFn, deleteLesson, getMyCourse, setCoursePublished, updateCourse,
+} from "@/lib/courses.functions";
 
 export const Route = createFileRoute("/_authenticated/course/$courseId")({
   staticData: { sitemap: false },
   head: () => ({
     meta: [
-      { title: "Edit course — Kominimo" },
+      { title: `Edit course — ${SITE.name}` },
       { name: "description", content: "Edit course details, pricing and lessons." },
-      { property: "og:title", content: "Edit course — Kominimo" },
-      { property: "og:description", content: "Edit course details, pricing and lessons on Kominimo." },
+      { property: "og:title", content: `Edit course — ${SITE.name}` },
+      { property: "og:description", content: `Edit course details, pricing and lessons on ${SITE.name}.` },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -31,31 +34,14 @@ function CourseEditor() {
   const { courseId } = Route.useParams();
   const queryClient = useQueryClient();
 
-  const course = useQuery({
+  const bundle = useQuery({
     queryKey: ["my-course", courseId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("id, title, slug, summary, cover_url, price_cents, currency, is_published")
-        .eq("id", courseId)
-        .single();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getMyCourse({ data: { courseId } }),
   });
-
-  const lessons = useQuery({
-    queryKey: ["my-lessons", courseId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("lessons")
-        .select("id, course_id, order_index, title, kind, video_url, body")
-        .eq("course_id", courseId)
-        .order("order_index", { ascending: true });
-      if (error) throw error;
-      return data as Lesson[];
-    },
-  });
+  const course = { data: bundle.data?.course };
+  const lessons = { data: bundle.data?.lessons };
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ["my-course", courseId] });
+  const fail = (e: unknown) => toast.error(e instanceof Error ? e.message : "Something went wrong");
 
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
@@ -74,30 +60,32 @@ function CourseEditor() {
 
   const saveDetails = async () => {
     const cents = Math.max(0, Math.round(Number(price) * 100) || 0);
-    const { error } = await supabase
-      .from("courses")
-      .update({
-        title: title.trim() || "Untitled course",
-        summary: summary.trim(),
-        cover_url: cover.trim() || null,
-        price_cents: cents,
-        currency,
-      })
-      .eq("id", courseId);
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await updateCourse({
+        data: {
+          courseId,
+          title: title.trim() || "Untitled course",
+          summary: summary.trim(),
+          coverUrl: cover.trim() || null,
+          priceCents: cents,
+          currency: currency as "USD" | "NGN" | "GBP" | "EUR",
+        },
+      });
       toast.success("Course saved");
-      queryClient.invalidateQueries({ queryKey: ["my-course", courseId] });
+      refresh();
+    } catch (e) {
+      fail(e);
     }
   };
 
   const togglePublish = async () => {
     const next = !course.data?.is_published;
-    const { error } = await supabase.from("courses").update({ is_published: next }).eq("id", courseId);
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await setCoursePublished({ data: { courseId, published: next } });
       toast.success(next ? "Course published" : "Course unpublished");
-      queryClient.invalidateQueries({ queryKey: ["my-course", courseId] });
+      refresh();
+    } catch (e) {
+      fail(e);
     }
   };
 
@@ -108,27 +96,24 @@ function CourseEditor() {
 
   const addLesson = async () => {
     if (newTitle.trim().length < 2) return;
-    const { error } = await supabase.from("lessons").insert({
-      course_id: courseId,
-      order_index: (lessons.data?.length ?? 0) + 1,
-      title: newTitle.trim(),
-      kind: newKind,
-      video_url: newKind === "video" ? newVideo.trim() || null : null,
-      body: newKind === "text" ? newBody.trim() : "",
-    });
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await addLessonFn({ data: { courseId, title: newTitle.trim(), kind: newKind, videoUrl: newKind === "video" ? newVideo.trim() || null : null, body: newKind === "text" ? newBody.trim() : "" } });
       setNewTitle("");
       setNewVideo("");
       setNewBody("");
-      queryClient.invalidateQueries({ queryKey: ["my-lessons", courseId] });
+      refresh();
+    } catch (e) {
+      fail(e);
     }
   };
 
   const removeLesson = async (id: string) => {
-    const { error } = await supabase.from("lessons").delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else queryClient.invalidateQueries({ queryKey: ["my-lessons", courseId] });
+    try {
+      await deleteLesson({ data: { id } });
+      refresh();
+    } catch (e) {
+      fail(e);
+    }
   };
 
   return (

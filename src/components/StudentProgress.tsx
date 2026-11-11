@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Download, TrendingUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { getStudentProgress } from "@/lib/quizzes.functions";
 import { downloadCsv } from "@/lib/csv";
 import { formatMs } from "@/lib/quiz";
 
@@ -19,11 +19,7 @@ type ProgressRow = {
 export function StudentProgress() {
   const progress = useQuery({
     queryKey: ["student-progress"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("tutor_student_progress");
-      if (error) throw error;
-      return (data ?? []) as ProgressRow[];
-    },
+    queryFn: async (): Promise<ProgressRow[]> => getStudentProgress(),
   });
 
   const rows = progress.data ?? [];

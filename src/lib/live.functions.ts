@@ -1,110 +1,109 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { anonymous, tutor } from "@/lib/middleware";
+import { uuid } from "@/lib/validation";
 
-export async function daily(path: string, init: RequestInit = {}) {
-  const key = process.env["DAILY_API_KEY"];
-  if (!key) throw new Error("Live video isn't connected yet");
-  const res = await fetch(`https://api.daily.co/v1${path}`, {
-    ...init,
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...(init.headers ?? {}) },
-  });
-  if (!res.ok && res.status !== 404) throw new Error(`Video service error (${res.status})`);
-  return res.status === 404 ? null : res.json();
-}
-
-async function token(room: string, userName: string, owner: boolean, userId: string, rep = false) {
-  const t = await daily("/meeting-tokens", {
-    method: "POST",
-    body: JSON.stringify({
-      properties: {
-        room_name: room,
-        user_name: userName,
-        user_id: userId,
-        is_owner: owner,
-        start_video_off: !owner,
-        start_audio_off: !owner,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 6,
-        // Class reps can mute or remove participants, but cannot end the class like the tutor.
-        ...(rep ? { permissions: { canAdmin: ["participants"] } } : {}),
-      },
-    }),
-  });
-  return t.token as string;
-}
-
-const classInput = (d: unknown) => z.object({ classId: z.string().uuid() }).parse(d);
+/** Live video (Daily.co). Tutors start/end; approved students get a personal join link. */
+const K = () => import("@/server/kit");
+const D = () => import("@/server/daily");
+const classInput = z.object({ classId: uuid });
 
 export const startLiveClass = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([tutor])
   .inputValidator(classInput)
   .handler(async ({ data, context }) => {
-    const { data: cls } = await context.supabase
-      .from("classes")
-      .select("id, title, tutor_id, live_room_name, live_room_url")
-      .eq("id", data.classId)
-      .maybeSingle();
-    if (!cls || cls.tutor_id !== context.userId) throw new Error("Not your class");
-    let name = cls.live_room_name;
-    let url = cls.live_room_url;
+    const { withDb, sql, AppError, rateLimit, LIMITS } = await K();
+    const { createRoom, meetingToken } = await D();
+    const uid = context.actor.userId;
+    const cls = await withDb({ userId: uid }, async (tx) => {
+      await rateLimit(tx, `live:${uid}`, LIMITS.liveToken.windowSeconds, LIMITS.liveToken.max);
+      return tx.one<{ live_room_name: string | null; live_room_url: string | null }>(
+        sql`SELECT live_room_name, live_room_url FROM public.classes WHERE id = ${data.classId} AND tutor_id = ${uid}`,
+      );
+    });
+    if (!cls) throw new AppError("NOT_FOUND", "We couldn't find that class.");
+    let { live_room_name: name, live_room_url: url } = cls;
     if (!name || !url) {
-      const room = await daily("/rooms", {
-        method: "POST",
-        body: JSON.stringify({
-          privacy: "private",
-          properties: { exp: Math.floor(Date.now() / 1000) + 60 * 60 * 6, enable_chat: true, enable_screenshare: true, enable_prejoin_ui: true },
-        }),
-      });
+      const room = await createRoom();
       name = room.name as string;
       url = room.url as string;
-      const { error } = await context.supabase
-        .from("classes")
-        .update({ live_room_name: name, live_room_url: url, live_started_at: new Date().toISOString(), session_started_at: new Date().toISOString(), session_ended_at: null, live_empty_since: null })
-        .eq("id", cls.id);
-      if (error) throw error;
-      // The class-session trigger atomically creates history and resets current attendance.
+      // The class-session trigger atomically records history and resets current attendance.
+      await withDb({ userId: uid }, (tx) =>
+        tx.exec(sql`UPDATE public.classes SET live_room_name = ${name}, live_room_url = ${url}, live_started_at = now(),
+                    session_started_at = now(), session_ended_at = NULL, live_empty_since = NULL WHERE id = ${data.classId} AND tutor_id = ${uid}`),
+      );
     }
-    const { data: prof } = await context.supabase.from("profiles").select("display_name").eq("id", context.userId).maybeSingle();
-    return { url: `${url}?t=${await token(name, prof?.display_name || "Tutor", true, context.userId)}` };
+    return {
+      url: `${url}?t=${await meetingToken(name!, context.actor.displayName || "Tutor", true, uid)}`,
+    };
   });
 
 export const endLiveClass = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([tutor])
   .inputValidator(classInput)
   .handler(async ({ data, context }) => {
-    const { data: cls } = await context.supabase
-      .from("classes")
-      .select("id, tutor_id, live_room_name")
-      .eq("id", data.classId)
-      .maybeSingle();
-    if (!cls || cls.tutor_id !== context.userId) throw new Error("Not your class");
-    if (cls.live_room_name) await daily(`/rooms/${cls.live_room_name}`, { method: "DELETE" });
-    const { error } = await context.supabase
-      .from("classes")
-      .update({ live_room_name: null, live_room_url: null, live_started_at: null, session_ended_at: new Date().toISOString(), live_empty_since: null })
-      .eq("id", cls.id);
-    if (error) throw error;
+    const { withDb, sql, AppError } = await K();
+    const { daily } = await D();
+    const uid = context.actor.userId;
+    const room = await withDb({ userId: uid }, (tx) =>
+      tx.one<{ live_room_name: string | null }>(
+        sql`SELECT live_room_name FROM public.classes WHERE id = ${data.classId} AND tutor_id = ${uid}`,
+      ),
+    );
+    if (!room) throw new AppError("NOT_FOUND", "We couldn't find that class.");
+    if (room.live_room_name) await daily(`/rooms/${room.live_room_name}`, { method: "DELETE" });
+    await withDb({ userId: uid }, (tx) =>
+      tx.exec(
+        sql`UPDATE public.classes SET live_room_name = NULL, live_room_url = NULL, live_started_at = NULL, session_ended_at = now(), live_empty_since = NULL WHERE id = ${data.classId} AND tutor_id = ${uid}`,
+      ),
+    );
     return { ok: true };
   });
 
-// Students have no account: verify they're an approved member before handing out a join token.
+const tokenInput = z.object({ token: z.string().min(20).max(400) });
+
 export const getLiveStatus = createServerFn({ method: "POST" })
-  .inputValidator((d) => z.object({ memberId: z.string().uuid() }).parse(d))
+  .middleware([anonymous])
+  .inputValidator(tokenInput)
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: m } = await supabaseAdmin.from("class_members").select("class_id, status").eq("id", data.memberId).maybeSingle();
-    if (!m || m.status !== "approved") return { live: false as const };
-    const { data: c } = await supabaseAdmin.from("classes").select("live_room_name").eq("id", m.class_id).maybeSingle();
-    return { live: !!c?.live_room_name };
+    const { withDb, sql, verifyCapability } = await K();
+    const memberId = await verifyCapability("member", data.token);
+    const m = await withDb({}, (tx) =>
+      tx.one<{ status: string; live_room_name: string | null }>(
+        sql`SELECT status, live_room_name FROM public.member_live(${memberId})`,
+      ),
+    );
+    return { live: m?.status === "approved" && Boolean(m.live_room_name) };
   });
 
 export const joinLiveClass = createServerFn({ method: "POST" })
-  .inputValidator((d) => z.object({ memberId: z.string().uuid() }).parse(d))
-  .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: m } = await supabaseAdmin.from("class_members").select("class_id, status, name").eq("id", data.memberId).maybeSingle();
-    if (!m || m.status !== "approved") throw new Error("Not approved");
-    const { data: c } = await supabaseAdmin.from("classes").select("live_room_name, live_room_url, rep_member_id").eq("id", m.class_id).maybeSingle();
-    if (!c?.live_room_name || !c.live_room_url) throw new Error("Class isn't live");
-    return { url: `${c.live_room_url}?t=${await token(c.live_room_name, m.name, false, data.memberId, c.rep_member_id === data.memberId)}` };
+  .middleware([anonymous])
+  .inputValidator(tokenInput)
+  .handler(async ({ data, context }) => {
+    const { withDb, sql, AppError, verifyCapability, rateLimit, LIMITS } = await K();
+    const { meetingToken } = await D();
+    const memberId = await verifyCapability("member", data.token);
+    const m = await withDb({}, async (tx) => {
+      await rateLimit(
+        tx,
+        `livejoin:${memberId}`,
+        LIMITS.liveToken.windowSeconds,
+        LIMITS.liveToken.max,
+      );
+      await rateLimit(tx, `livejoin-ip:${context.ipHash}`, 60, 600);
+      return tx.one<{
+        status: string;
+        name: string;
+        live_room_name: string | null;
+        live_room_url: string | null;
+        is_rep: boolean;
+      }>(sql`SELECT * FROM public.member_live(${memberId})`);
+    });
+    if (!m || m.status !== "approved")
+      throw new AppError("FORBIDDEN", "You haven't been approved for this class yet.");
+    if (!m.live_room_name || !m.live_room_url)
+      throw new AppError("CONFLICT", "The class isn't live right now.");
+    return {
+      url: `${m.live_room_url}?t=${await meetingToken(m.live_room_name, m.name, false, memberId, m.is_rep)}`,
+    };
   });

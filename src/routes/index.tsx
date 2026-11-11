@@ -1,7 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
-import { supabase } from "@/integrations/supabase/client";
+import { MarketingLayout } from "@/components/site/MarketingLayout";
+import { getClassPublic } from "@/lib/member.functions";
+import { SITE } from "@/config/site";
+import { FREE_TIER } from "@/config/plans";
 import { ArrowRight, CheckCircle2, GraduationCap, Trophy, Users, Video } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,13 +14,13 @@ export const Route = createFileRoute("/")({
   staticData: { sitemap: true },
   head: () => ({
     meta: [
-      { title: "Kominimo — Live Quizzes and Courses for Modern Learning" },
+      { title: `${SITE.name} — ${SITE.tagline}` },
       {
         name: "description",
         content:
           "Create live quizzes, publish video or written courses, and give students one engaging place to learn with Kominimo.",
       },
-      { property: "og:title", content: "Kominimo — Live Quizzes and Courses for Modern Learning" },
+      { property: "og:title", content: `${SITE.name} — ${SITE.tagline}` },
       {
         property: "og:description",
         content:
@@ -40,8 +43,13 @@ function Landing() {
     if (clean.length < 4) return;
     // Class and quiz codes share the same alphabet — check classes first,
     // then send whatever is left to the quiz join flow (it shows "not found").
-    const { data } = await supabase.rpc("get_class_by_code", { _code: clean });
-    if (data && data.length > 0) {
+    let isClass = false;
+    try {
+      isClass = Boolean(await getClassPublic({ data: { code: clean } }));
+    } catch {
+      isClass = false;
+    }
+    if (isClass) {
       navigate({ to: "/class/$code", params: { code: clean } });
     } else {
       navigate({ to: "/join/$code", params: { code: clean } });
@@ -49,22 +57,9 @@ function Landing() {
   };
 
   return (
-    <div className="min-h-screen overflow-hidden bg-background">
-      <header className="relative z-30 mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:h-20 sm:px-8">
-        <Link to="/" className="font-display text-2xl font-bold sm:text-3xl" aria-label="Kominimo home">
-          Kọ́mì<span className="text-primary">nímọ̀</span>
-        </Link>
-        <nav className="hidden items-center gap-7 text-sm font-bold md:flex" aria-label="Main navigation">
-          <a href="#quizzes" className="transition-colors hover:text-primary">Live quizzes</a>
-          <Link to="/courses" className="transition-colors hover:text-primary">Courses</Link>
-          <Link to="/pricing" className="transition-colors hover:text-primary">Pricing</Link>
-        </nav>
-        <Button asChild variant="outline" className="chunky h-10 shrink-0 rounded-full border-2 px-4 text-sm font-bold sm:h-11 sm:px-5 sm:text-base">
-          <Link to="/auth">Tutor sign in</Link>
-        </Button>
-      </header>
+    <MarketingLayout>
 
-      <main>
+      <>
         <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-8 sm:px-8 sm:pt-14 lg:grid-cols-2 lg:gap-16 lg:pb-28">
           <div className="pop-in">
             <span className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground sm:text-sm">
@@ -75,6 +70,9 @@ function Landing() {
             </h1>
             <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
               Host live lectures, take real attendance automatically, and run quizzes your students actually enjoy — all in one place.
+            </p>
+            <p className="mt-3 inline-flex rounded-full border-2 border-secondary bg-accent px-3 py-1 text-sm font-bold text-secondary-foreground">
+              Free for classes up to {FREE_TIER.maxStudentsPerClass} students — attendance &amp; analytics included
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button asChild className="h-12 rounded-xl px-6 text-base font-bold">
@@ -144,15 +142,8 @@ function Landing() {
             <Button asChild className="chunky relative mt-8 h-13 w-full rounded-xl px-8 sm:h-14 sm:w-auto text-base font-extrabold lg:mt-0"><Link to="/auth">Sign up as a tutor <ArrowRight /></Link></Button>
           </div>
         </section>
-      </main>
+      </>
 
-      <footer className="border-t-2 border-border px-5 py-8 sm:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <span className="font-display text-xl font-bold text-foreground">Kọ́mì<span className="text-primary">nímọ̀</span></span>
-          <p>Live learning and self-paced courses, together.</p>
-          <div className="flex flex-wrap gap-5 font-bold"><Link to="/courses">Courses</Link><Link to="/pricing">Pricing</Link><Link to="/auth">Sign in</Link></div>
-        </div>
-      </footer>
-    </div>
+    </MarketingLayout>
   );
 }

@@ -15,8 +15,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
-import { useServerFn } from "@tanstack/react-start";
+import { SITE } from "@/config/site";
+import {
+  addRoster as addRosterFn, admitAll as admitAllFn, deleteRoster, getClass, listClassQuizzes, listMembers, listRoster,
+  publishAsyncQuiz, pushPopQuiz, removeMember as removeMemberFn, setMemberStatus, updateClassSettings,
+} from "@/lib/classes.functions";
+import { listQuizzes, quizAction } from "@/lib/quizzes.functions";
 import { endLiveClass, startLiveClass } from "@/lib/live.functions";
 import { LiveRoom } from "@/components/LiveRoom";
 
@@ -24,10 +28,10 @@ export const Route = createFileRoute("/_authenticated/manage-class/$classId")({
   staticData: { sitemap: false },
   head: () => ({
     meta: [
-      { title: "Class control room — Kominimo" },
+      { title: `Class control room — ${SITE.name}` },
       { name: "description", content: "Approve students, share resources and push quizzes to your class." },
-      { property: "og:title", content: "Class control room — Kominimo" },
-      { property: "og:description", content: "Manage your Kominimo class." },
+      { property: "og:title", content: `Class control room — ${SITE.name}` },
+      { property: "og:description", content: `Manage your ${SITE.name} class.` },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -66,76 +70,50 @@ function ClassRoom() {
 
   const cls = useQuery({
     queryKey: ["class", classId, "info"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("classes").select("*").eq("id", classId).single();
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getClass({ data: { classId } }),
   });
   const members = useQuery({
     queryKey: ["class", classId, "members"],
     refetchInterval: 4000,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("class_members").select("*").eq("class_id", classId).order("joined_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => listMembers({ data: { classId } }),
   });
   const linked = useQuery({
     queryKey: ["class", classId, "quizzes"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("class_quizzes").select("id, mode, pushed_at, quiz_id, quizzes(id, title, join_code, status, opens_at, closes_at)").eq("class_id", classId).order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => listClassQuizzes({ data: { classId } }),
   });
   const myQuizzes = useQuery({
     queryKey: ["quizzes"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("quizzes").select("id, title, join_code, status").order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => listQuizzes(),
   });
 
   const setStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "approved" | "rejected" }) => {
-      const { error } = await supabase.from("class_members").update({ status }).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: async ({ id, status }: { id: string; status: "approved" | "rejected" }) => { await setMemberStatus({ data: { id, status } }); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
     onSuccess: inv,
   });
   const removeMember = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("class_members").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: async (id: string) => { await removeMemberFn({ data: { id } }); },
     onSuccess: () => { setRemoving(null); inv(); toast.success("Student removed"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
   const roster = useQuery({
     queryKey: ["class", classId, "roster"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("class_roster").select("*").eq("class_id", classId).order("created_at");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => listRoster({ data: { classId } }),
   });
   const [rosterText, setRosterText] = useState("");
   const [rosterOn, setRosterOn] = useState(false);
   const addRoster = useMutation({
     mutationFn: async () => {
-      const rows = [...new Set(rosterText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean))].slice(0, 1000)
-        .map((identifier) => ({ class_id: classId, identifier: identifier.slice(0, 120) }));
-      const { error } = await supabase.from("class_roster").upsert(rows, { onConflict: "class_id,identifier", ignoreDuplicates: true });
-      if (error) throw error;
+      const identifiers = [...new Set(rosterText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean))].slice(0, 1000).map((x) => x.slice(0, 120));
+      if (identifiers.length === 0) throw new Error("Paste at least one name or number");
+      await addRosterFn({ data: { classId, identifiers } });
     },
     onSuccess: () => { setRosterText(""); inv(); toast.success("List saved"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
   const delRoster = useMutation({
-    mutationFn: async (id: string) => { const { error } = await supabase.from("class_roster").delete().eq("id", id); if (error) throw error; },
+    mutationFn: async (id: string) => { await deleteRoster({ data: { id } }); },
     onSuccess: inv,
   });
 
@@ -146,36 +124,34 @@ function ClassRoom() {
   const addAsync = useMutation({
     mutationFn: async () => {
       if (!pick) throw new Error("Pick a quiz");
-      const { error: e1 } = await supabase.from("quizzes").update({
-        opens_at: opens ? new Date(opens).toISOString() : null,
-        closes_at: closes ? new Date(closes).toISOString() : null,
-        status: "live",
-      }).eq("id", pick);
-      if (e1) throw e1;
-      const { error } = await supabase.from("class_quizzes").upsert({ class_id: classId, quiz_id: pick, mode: "async" }, { onConflict: "class_id,quiz_id" });
-      if (error) throw error;
+      await publishAsyncQuiz({
+        data: {
+          classId,
+          quizId: pick,
+          opensAt: opens ? new Date(opens).toISOString() : null,
+          closesAt: closes ? new Date(closes).toISOString() : null,
+        },
+      });
     },
     onSuccess: () => { inv(); qc.invalidateQueries({ queryKey: ["quizzes"] }); toast.success("Quiz published to class"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
   const push = useMutation({
     mutationFn: async (quizId: string) => {
-      const { error } = await supabase.rpc("push_class_quiz", { _class_id: classId, _quiz_id: quizId });
-      if (error) throw error;
+      await pushPopQuiz({ data: { classId, quizId } });
     },
     onSuccess: () => { inv(); toast.success("Pop quiz sent to your class!"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
   const unpublish = useMutation({
     mutationFn: async (quizId: string) => {
-      const { error } = await supabase.from("quizzes").update({ status: "ended" }).eq("id", quizId);
-      if (error) throw error;
+      await quizAction({ data: { quizId, action: "end" } });
     },
     onSuccess: () => { inv(); toast.success("Quiz closed"); },
   });
 
-  const startFn = useServerFn(startLiveClass);
-  const endFn = useServerFn(endLiveClass);
+  const startFn = startLiveClass;
+  const endFn = endLiveClass;
   const [roomUrl, setRoomUrl] = useState<string | null>(null);
   const goLive = useMutation({
     mutationFn: () => startFn({ data: { classId } }),
@@ -190,18 +166,18 @@ function ClassRoom() {
 
   const saveSettings = useMutation({
     mutationFn: async (patch: { admit_mode?: string; id_label?: string; attendance_threshold?: number }) => {
-      const { error } = await supabase.from("classes").update(patch).eq("id", classId);
-      if (error) throw error;
+      await updateClassSettings({ data: { classId, ...(patch as { admit_mode?: "manual" | "roster" | "auto"; id_label?: "phone" | "matric"; attendance_threshold?: number }) } });
     },
     onSuccess: () => { inv(); toast.success("Class settings saved"); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
   const admitAll = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("class_members").update({ status: "approved" }).eq("class_id", classId).eq("status", "pending");
-      if (error) throw error;
+      const r = await admitAllFn({ data: { classId } });
+      if (r.waiting > 0) throw new Error(`Class is full — ${r.admitted} let in, ${r.waiting} still waiting. Upgrade or remove a student to make room.`);
     },
     onSuccess: () => { inv(); toast.success("Everyone waiting was let in"); },
+    onError: (e) => { inv(); toast.error(e instanceof Error ? e.message : "Failed"); },
   });
 
   // Ping the tutor whenever a new student is waiting, wherever they are on this page (including inside the live class).

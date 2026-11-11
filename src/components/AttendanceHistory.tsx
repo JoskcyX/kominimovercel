@@ -3,14 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, ChevronDown, ChevronUp, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+import { getSessionAttendance, listSessions } from "@/lib/classes.functions";
+import type { MemberRow, SessionRow } from "@/lib/types";
 import { buildAttendanceCsv, buildAttendanceXlsx, downloadBlob } from "@/lib/attendance";
 import { sessionAttendanceRows } from "@/lib/session-attendance";
 import { isRecentlyPresent } from "@/lib/live-connection";
 
-type Session = Database["public"]["Tables"]["class_sessions"]["Row"];
-type Member = Database["public"]["Tables"]["class_members"]["Row"];
+type Session = SessionRow;
+type Member = MemberRow;
 type Removal = { id: string; name: string };
 
 function SessionRecord({ session, members, onRemove }: { session: Session; members: Member[]; onRemove: (member: Removal) => void }) {
@@ -19,11 +19,7 @@ function SessionRecord({ session, members, onRemove }: { session: Session; membe
   const participants = useQuery({
     queryKey: ["class", session.class_id, "attendance", session.id],
     refetchInterval: session.ended_at ? false : 15000,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("class_session_attendance").select("*").eq("session_id", session.id).order("name");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => getSessionAttendance({ data: { sessionId: session.id } }),
   });
   const rows = sessionAttendanceRows(session, participants.data ?? []);
   const date = new Date(session.started_at);
@@ -74,11 +70,7 @@ export function AttendanceHistory({ classId, live, members = [], onRemove = () =
   const sessions = useQuery({
     queryKey: ["class", classId, "sessions"],
     refetchInterval: live ? 15000 : false,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("class_sessions").select("*").eq("class_id", classId).order("started_at", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => listSessions({ data: { classId } }),
   });
   return <section className="mt-8 min-w-0">
     <h2 className="text-xl font-bold sm:text-2xl">Attendance history</h2>

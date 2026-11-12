@@ -13,7 +13,7 @@ export const SITE = {
   wordmark: ["Kọ́mì", "nímọ̀"] as const,
   tagline: "Teach live. Reach everyone.",
   description:
-    "Host live classes with automatic attendance, run quizzes your students enjoy, and publish courses — free for classes of up to 250 students.",
+    "Host live classes with automatic attendance, run quizzes your students enjoy, and publish courses - free for classes of up to 250 students.",
 
   /** Public origin, no trailing slash. Set VITE_SITE_URL in production. */
   url: ((env["VITE_SITE_URL"] as string | undefined) ?? "").replace(/\/+$/, ""),

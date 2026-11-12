@@ -1,12 +1,24 @@
 import { z } from "zod";
 
+/** Accepts the Auth URL even if the JWKS path or a trailing slash was pasted on the end. */
+export const normalizeAuthUrl = (u: string) =>
+  u
+    .trim()
+    .replace(/\/\.well-known\/jwks\.json\/?$/i, "")
+    .replace(/\/+$/, "");
+
 /**
  * Server-only environment, validated once. Missing or malformed values produce ONE clear error
  * that names the variable (never its value). Run `npm run check:env` to validate before deploying.
  */
 const schema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  NEON_AUTH_BASE_URL: z.string().url("NEON_AUTH_BASE_URL must be a URL"),
+  NEON_AUTH_BASE_URL: z
+    .string()
+    .url("NEON_AUTH_BASE_URL must be a URL")
+    .transform(normalizeAuthUrl),
+  /** Only if Neon shows a JWKS URL that isn't simply <Auth URL>/.well-known/jwks.json. */
+  NEON_AUTH_JWKS_URL: z.string().url().optional(),
   SESSION_SECRET: z
     .string()
     .min(32, "SESSION_SECRET must be at least 32 characters (openssl rand -base64 48)"),
@@ -21,6 +33,8 @@ const schema = z.object({
   STORAGE_BUCKET: z.string().default("class-files"),
   PLAN_ENFORCEMENT: z.enum(["on", "off"]).default("on"),
   TRUST_PROXY: z.enum(["true", "false"]).default("true"),
+  /** Max database connections per server instance (Neon's pooler handles many clients; 10 suits Vercel Fluid). */
+  DB_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
 });
 
 export type ServerEnv = z.infer<typeof schema>;

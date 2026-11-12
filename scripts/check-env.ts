@@ -81,13 +81,42 @@ if (env) {
     await client.end().catch(() => undefined);
   }
 
+  console.log("\nApp connection (the same path the running app uses)");
+  const major = Number(process.versions.node.split(".")[0]);
+  if (major < 22)
+    warn(
+      `Node ${process.versions.node}: Node 22+ is recommended (older versions fall back to the "ws" package)`,
+    );
+  else ok(`Node ${process.versions.node}`);
+  if (/channel_binding=require/i.test(env.DATABASE_URL))
+    warn(
+      "DATABASE_URL contains channel_binding=require — remove it (Neon's serverless driver may fail with it)",
+    );
+  if (/ep-xxxx|:password@/.test(env.DATABASE_URL))
+    bad("DATABASE_URL still looks like the .env.example placeholder");
+  try {
+    const { withDb, sql } = await import("../src/server/db");
+    const row = await withDb({}, (tx) =>
+      tx.one<{ who: string; tables: number }>(
+        sql`SELECT current_user AS who, (SELECT count(*) FROM pg_tables WHERE schemaname = 'public')::int AS tables`,
+      ),
+    );
+    if (row?.who === "app_runtime")
+      ok(`connected; running as least-privilege role "${row.who}" (${row.tables} tables)`);
+    else bad(`connected but running as "${row?.who}", not app_runtime`);
+  } catch (e) {
+    bad(
+      `cannot connect the way the app does: ${(e as Error).message}  (the exact cause is printed above as "[server] …")`,
+    );
+  }
+
   console.log("\nNeon Auth");
   try {
-    const origin = new URL(env.NEON_AUTH_BASE_URL).origin;
-    const res = await fetch(`${origin}/.well-known/jwks.json`);
+    const jwksUrl = env.NEON_AUTH_JWKS_URL ?? `${env.NEON_AUTH_BASE_URL}/.well-known/jwks.json`;
+    const res = await fetch(jwksUrl);
     const keys = res.ok ? (((await res.json()) as { keys?: unknown[] }).keys?.length ?? 0) : 0;
     if (keys > 0) ok(`signing keys reachable (${keys})`);
-    else bad(`JWKS not reachable at ${origin}/.well-known/jwks.json (HTTP ${res.status})`);
+    else bad(`JWKS not reachable at ${jwksUrl} (HTTP ${res.status}) — check NEON_AUTH_BASE_URL`);
   } catch (e) {
     bad(`auth: ${(e as Error).message}`);
   }

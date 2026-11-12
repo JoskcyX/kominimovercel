@@ -11,7 +11,12 @@ let client: ReturnType<typeof make> | undefined;
 function make() {
   const url = import.meta.env["VITE_NEON_AUTH_URL"] as string | undefined;
   if (!url) throw new Error("VITE_NEON_AUTH_URL is not set. See .env.example.");
-  return createAuthClient(url, { adapter: BetterAuthVanillaAdapter() });
+  // Forgive a pasted JWKS URL or trailing slash — the Auth URL ends at …/auth.
+  const clean = url
+    .trim()
+    .replace(/\/\.well-known\/jwks\.json\/?$/i, "")
+    .replace(/\/+$/, "");
+  return createAuthClient(clean, { adapter: BetterAuthVanillaAdapter() });
 }
 const auth = () => (client ??= make());
 

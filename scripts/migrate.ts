@@ -6,14 +6,19 @@
  * Each file runs in its own transaction and is checksummed: editing an applied file is an error.
  */
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import pg from "pg";
+
+// Load .env.local / .env like the other scripts do (real environment variables still win).
+for (const f of [".env.local", ".env"]) if (existsSync(f)) process.loadEnvFile(f);
 
 const dir = join(process.cwd(), "db", "migrations");
 const url = process.env["DATABASE_URL_MIGRATIONS"] ?? process.env["DATABASE_URL"];
 if (!url) {
-  console.error("Set DATABASE_URL_MIGRATIONS (or DATABASE_URL).");
+  console.error(
+    "No database URL found. Put DATABASE_URL_MIGRATIONS=postgresql://… in a file named .env.local in the project root\n(next to package.json), or set it in your terminal. See .env.example.",
+  );
   process.exit(1);
 }
 const statusOnly = process.argv.includes("--status");

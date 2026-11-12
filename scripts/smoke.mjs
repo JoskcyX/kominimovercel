@@ -24,11 +24,13 @@ const APP = 3100, AUTH = 3200, ORIGIN = `http://localhost:${APP}`, AUTH_ORIGIN =
 // ── stub Neon Auth ───────────────────────────────────────────────────────────────────────
 const { publicKey, privateKey } = await generateKeyPair("EdDSA", { crv: "Ed25519", extractable: true });
 const jwk = { ...(await exportJWK(publicKey)), alg: "EdDSA", use: "sig", kid: "k1" };
+// Mirrors Neon: keys are served ONLY under the Auth URL path; anywhere else is a 404.
 const authServer = http.createServer((req, res) => {
+  if (req.url !== "/neondb/auth/.well-known/jwks.json") { res.statusCode = 404; return res.end("not found"); }
   res.setHeader("content-type", "application/json");
   res.end(JSON.stringify({ keys: [jwk] }));
 }).listen(AUTH);
-const tokenFor = (id, email, { aud = AUTH_ORIGIN, iss = AUTH_ORIGIN, ttl = "10m", key = privateKey } = {}) =>
+const tokenFor = (id, email, { aud = `${AUTH_ORIGIN}/neondb/auth`, iss = `${AUTH_ORIGIN}/neondb/auth`, ttl = "10m", key = privateKey } = {}) =>
   new SignJWT({ email, name: email.split("@")[0] }).setProtectedHeader({ alg: "EdDSA", kid: "k1" })
     .setSubject(id).setIssuer(iss).setAudience(aud).setIssuedAt().setExpirationTime(ttl).sign(key);
 

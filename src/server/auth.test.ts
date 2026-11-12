@@ -38,7 +38,8 @@ beforeAll(async () => {
     keys: [{ ...(await exportJWK(kp.publicKey)), alg: "EdDSA", kid: "k1", use: "sig" }],
   });
   const mod = await import("./auth");
-  verify = (t) => mod.verifyAccessToken(t, { jwks: jwks as never, origin: ORIGIN });
+  verify = (t) =>
+    mod.verifyAccessToken(t, { jwks: jwks as never, issuers: [ORIGIN, `${ORIGIN}/db/auth`] });
 });
 
 describe("verifyAccessToken", () => {
@@ -48,6 +49,11 @@ describe("verifyAccessToken", () => {
       email: "ada@example.dev",
       name: "Ada",
     });
+  });
+  it("accepts the full Auth URL as issuer/audience as well as the host origin", async () => {
+    await expect(
+      verify(await token({ iss: `${ORIGIN}/db/auth`, aud: `${ORIGIN}/db/auth` })),
+    ).resolves.toMatchObject({ id: ID });
   });
   it("rejects wrong issuer, audience, expired, and foreign-key tokens", async () => {
     await expect(verify(await token({ iss: "https://evil.example" }))).rejects.toThrow();

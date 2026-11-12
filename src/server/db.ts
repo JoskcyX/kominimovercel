@@ -61,6 +61,10 @@ async function getPool(): Promise<Pool> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mod: any = isNeon ? await import("@neondatabase/serverless") : await import("pg");
     const pgMod = mod.default ?? mod;
+    // Neon's driver talks over a WebSocket. Node 22.4+ has one built in; older Node (e.g. 20) needs `ws`.
+    if (isNeon && typeof globalThis.WebSocket === "undefined" && mod.neonConfig) {
+      mod.neonConfig.webSocketConstructor = (await import("ws")).default;
+    }
     const types = pgMod.types ?? mod.types;
     if (types) {
       types.setTypeParser(20, (v: string) => Number(v)); // bigint → number
@@ -106,16 +110,21 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  */
 export async function withDb<T>(ctx: DbContext, fn: (tx: Tx) => Promise<T>): Promise<T> {
   if (ctx.userId && !UUID.test(ctx.userId)) throw new Error("Invalid user id");
-  const pool = await getPool();
-  const client: PoolClient = await pool.connect();
+  let client: PoolClient | undefined;
   try {
-    await client.query("BEGIN");
-    await client.query("SET LOCAL ROLE app_runtime");
+    // Connecting is inside the try on purpose: a failed connection must go through toAppError like any
+    // other failure, otherwise the raw driver error (host names, or objects that can't be sent to the
+    // browser at all) escapes to the client.
+    const pool = await getPool();
+    client = await pool.connect();
+    // ONE round trip for the whole prelude (it used to be three). The inlined values are safe: the user
+    // id was just validated as a UUID and `system` is a fixed two-value union — never free text.
+    const uid = ctx.userId ?? "";
+    const sys = ctx.system ?? "";
     await client.query(
-      "SELECT set_config('app.user_id', $1, true), set_config('app.system', $2, true)",
-      [ctx.userId ?? "", ctx.system ?? ""],
+      `BEGIN; SET LOCAL ROLE app_runtime; SET LOCAL app.user_id = '${uid}'; SET LOCAL app.system = '${sys}'`,
     );
-    const run = async (q: Sql) => client.query(q.text, q.values as unknown[]);
+    const run = async (q: Sql) => client!.query(q.text, q.values as unknown[]);
     const tx: Tx = {
       all: async (q) => (await run(q)).rows,
       one: async (q) => (await run(q)).rows[0] ?? null,
@@ -129,13 +138,15 @@ export async function withDb<T>(ctx: DbContext, fn: (tx: Tx) => Promise<T>): Pro
     await client.query("COMMIT");
     return out;
   } catch (e) {
-    try {
-      await client.query("ROLLBACK");
-    } catch {
-      /* connection already broken */
+    if (client) {
+      try {
+        await client.query("ROLLBACK");
+      } catch {
+        /* connection already broken */
+      }
     }
     throw toAppError(e);
   } finally {
-    client.release();
+    client?.release();
   }
 }

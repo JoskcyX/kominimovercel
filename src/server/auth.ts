@@ -8,32 +8,39 @@ import { serverEnv } from "./env";
  * (jose caches and rotates them). A token that fails ANY check is treated as not signed in.
  */
 let jwks: ReturnType<typeof createRemoteJWKSet> | undefined;
-let cachedOrigin: string | undefined;
+let cachedFor: string | undefined;
 
+/**
+ * Neon serves its signing keys UNDER the Auth URL (…/neondb/auth/.well-known/jwks.json), not at the
+ * bare host. We tolerate the issuer/audience being either the host origin or the full Auth URL —
+ * both identify this one Neon Auth instance, so this is no looser than pinning one of them.
+ */
 function keys() {
-  const base = serverEnv().NEON_AUTH_BASE_URL;
+  const env = serverEnv();
+  const base = env.NEON_AUTH_BASE_URL;
+  const jwksUrl = env.NEON_AUTH_JWKS_URL ?? `${base}/.well-known/jwks.json`;
   const origin = new URL(base).origin;
-  if (!jwks || cachedOrigin !== origin) {
-    jwks = createRemoteJWKSet(new URL(`${origin}/.well-known/jwks.json`), {
+  if (!jwks || cachedFor !== jwksUrl) {
+    jwks = createRemoteJWKSet(new URL(jwksUrl), {
       cooldownDuration: 30_000,
       cacheMaxAge: 10 * 60_000,
     });
-    cachedOrigin = origin;
+    cachedFor = jwksUrl;
   }
-  return { jwks, origin };
+  return { jwks, issuers: [...new Set([origin, base])] };
 }
 
 export type VerifiedUser = { id: string; email: string | null; name: string | null };
 
 export async function verifyAccessToken(
   token: string,
-  override?: { jwks?: Parameters<typeof jwtVerify>[1]; origin?: string },
+  override?: { jwks?: Parameters<typeof jwtVerify>[1]; issuers?: string[] },
 ): Promise<VerifiedUser> {
   try {
-    const k = override?.jwks ? { jwks: override.jwks, origin: override.origin ?? "" } : keys();
+    const k = override?.jwks ? { jwks: override.jwks, issuers: override.issuers ?? [] } : keys();
     const { payload }: { payload: JWTPayload } = await jwtVerify(token, k.jwks as never, {
-      issuer: k.origin,
-      audience: k.origin,
+      issuer: k.issuers,
+      audience: k.issuers,
       algorithms: ["EdDSA"],
       clockTolerance: 5,
     });

@@ -96,11 +96,11 @@ export const FREE_FEATURES: Feature[] = [
     hint: "Per class. Run as many sessions as you like.",
   },
   {
-    text: "Automatic attendance — free",
+    text: "Automatic attendance - free",
     hint: "Counts real time present, not just who clicked join. Download as Excel or CSV.",
   },
   {
-    text: "Quiz & student analytics — free",
+    text: "Quiz & student analytics - free",
     hint: "Hardest questions, accuracy, speed, and progress across every quiz.",
   },
   {

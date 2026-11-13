@@ -78,7 +78,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "google-site-verification", content: "KE2F9qWrlYhveSpH--aknIdaNjISMgiFnmYdD17hnB0" },
-      { title: `${SITE.name} — ${SITE.tagline}` },
+      { title: `${SITE.name} - ${SITE.tagline}` },
       {
         name: "description",
         content:
@@ -86,8 +86,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:title", content: "Kominimo — Live Classroom Quizzes Your Students Race Through" },
-      { name: "twitter:title", content: "Kominimo — Live Classroom Quizzes Your Students Race Through" },
+      { property: "og:title", content: "Kominimo - Live Classroom Quizzes Your Students Race Through" },
+      { name: "twitter:title", content: "Kominimo - Live Classroom Quizzes Your Students Race Through" },
       { property: "og:description", content: "Tutors build a quiz, share one link, and hit start. Students join a live lobby, answer against the clock, and land on a speed-and-accuracy leaderboard." },
       { name: "twitter:description", content: "Tutors build a quiz, share one link, and hit start. Students join a live lobby, answer against the clock, and land on a speed-and-accuracy leaderboard." },
     ],

@@ -10,10 +10,10 @@ export const Route = createFileRoute("/about")({
   staticData: { sitemap: true },
   head: () => ({
     meta: [
-      { title: `About us — ${SITE.name}` },
+      { title: `About us - ${SITE.name}` },
       {
         name: "description",
-        content: `${SITE.name} helps tutors teach live, take attendance automatically and keep students engaged — wherever they are.`,
+        content: `${SITE.name} helps tutors teach live, take attendance automatically and keep students engaged - wherever they are.`,
       },
       { property: "og:title", content: `About ${SITE.name}` },
       { property: "og:type", content: "website" },
@@ -60,7 +60,7 @@ function AboutPage() {
     <MarketingLayout>
       <PageHeading
         eyebrow="About us"
-        title="Students learn from their lecturers — wherever they are."
+        title="Students learn from their lecturers - wherever they are."
         intro={`${SITE.name} gives tutors one calm place to teach live, know who showed up, and keep the whole room engaged.`}
       />
 
@@ -73,8 +73,8 @@ function AboutPage() {
         </p>
         <p>
           We measure ourselves by one thing: how many students attend a class and stay long enough
-          to meet the tutor's attendance threshold. Everything we build — the one-link join, the
-          live room, the quizzes, the analytics — serves that.
+          to meet the tutor's attendance threshold. Everything we build - the one-link join, the
+          live room, the quizzes, the analytics - serves that.
         </p>
       </section>
 
@@ -99,7 +99,7 @@ function AboutPage() {
         <div className="surface-card p-8">
           <h2 className="font-display text-2xl font-bold">Ready to teach your next class?</h2>
           <p className="mt-2 text-muted-foreground">
-            Create a free tutor account — no card needed.
+            Create a free tutor account - no card needed.
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Button asChild className="chunky h-12 rounded-xl px-6 font-bold">

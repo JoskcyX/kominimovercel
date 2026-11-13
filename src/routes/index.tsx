@@ -20,7 +20,7 @@ export const Route = createFileRoute("/")({
         content:
           "Create live quizzes, publish video or written courses, and give students one engaging place to learn with Kominimo.",
       },
-      { property: "og:title", content: `${SITE.name} — ${SITE.tagline}` },
+      { property: "og:title", content: `${SITE.name} - ${SITE.tagline}` },
       {
         property: "og:description",
         content:
@@ -41,7 +41,7 @@ function Landing() {
     event.preventDefault();
     const clean = code.trim().toUpperCase();
     if (clean.length < 4) return;
-    // Class and quiz codes share the same alphabet — check classes first,
+    // Class and quiz codes share the same alphabet - check classes first,
     // then send whatever is left to the quiz join flow (it shows "not found").
     let isClass = false;
     try {
@@ -69,10 +69,10 @@ function Landing() {
               Teach live.<br /><span className="text-primary">Reach everyone.</span>
             </h1>
             <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
-              Host live lectures, take real attendance automatically, and run quizzes your students actually enjoy — all in one place.
+              Host live lectures, take real attendance automatically, and run quizzes your students actually enjoy - all in one place.
             </p>
             <p className="mt-3 inline-flex rounded-full border-2 border-secondary bg-accent px-3 py-1 text-sm font-bold text-secondary-foreground">
-              Free for classes up to {FREE_TIER.maxStudentsPerClass} students — attendance &amp; analytics included
+              Free for classes up to {FREE_TIER.maxStudentsPerClass} students - attendance &amp; analytics included
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button asChild className="h-12 rounded-xl px-6 text-base font-bold">

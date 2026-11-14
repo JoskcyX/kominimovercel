@@ -1,4 +1,4 @@
-# EDxKa Roadmap
+# Kominimo Roadmap
 
 - [ ] Organize the class dashboard into focused sections, preserve all controls and join notifications, and verify signed-in desktop/mobile use.
 

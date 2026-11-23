@@ -81,13 +81,21 @@ function harden(response: Response, request: Request, nonce: string | null): Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     await nonceReady;
+    const startedAt = performance.now();
     const nonce = PROD && nonceStore ? newNonce() : null;
     try {
       const handler = await getServerEntry();
       const run = () => handler.fetch(request, env, ctx);
       const response =
         nonce && nonceStore ? await nonceStore.run({ nonce }, async () => run()) : await run();
-      return harden(await normalizeCatastrophicSsrResponse(response), request, nonce);
+      const hardened = harden(await normalizeCatastrophicSsrResponse(response), request, nonce);
+      // Opt-in diagnostics (SERVER_TIMING=on): how long the app itself spent, as a standard Server-Timing header.
+      if (process.env["SERVER_TIMING"] === "on")
+        hardened.headers.set(
+          "server-timing",
+          `app;dur=${(performance.now() - startedAt).toFixed(1)}`,
+        );
+      return hardened;
     } catch (error) {
       console.error(error);
       return harden(

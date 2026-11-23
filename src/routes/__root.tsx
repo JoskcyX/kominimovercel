@@ -8,12 +8,11 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { captureReferralCode } from "@/hooks/usePlan";
+import { captureReferralCode } from "@/lib/referral";
 
 import appCss from "../styles.css?url";
 import { SITE } from "@/config/site";
 import { Toaster } from "@/components/ui/sonner";
-
 
 function NotFoundComponent() {
   return (
@@ -78,7 +77,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "google-site-verification", content: "KE2F9qWrlYhveSpH--aknIdaNjISMgiFnmYdD17hnB0" },
-      { title: `${SITE.name} - ${SITE.tagline}` },
+      { title: `${SITE.name} — ${SITE.tagline}` },
       {
         name: "description",
         content:
@@ -86,10 +85,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:title", content: "Kominimo - Live Classroom Quizzes Your Students Race Through" },
-      { name: "twitter:title", content: "Kominimo - Live Classroom Quizzes Your Students Race Through" },
-      { property: "og:description", content: "Tutors build a quiz, share one link, and hit start. Students join a live lobby, answer against the clock, and land on a speed-and-accuracy leaderboard." },
-      { name: "twitter:description", content: "Tutors build a quiz, share one link, and hit start. Students join a live lobby, answer against the clock, and land on a speed-and-accuracy leaderboard." },
+      {
+        property: "og:title",
+        content: "Kominimo — Live Classroom Quizzes Your Students Race Through",
+      },
+      {
+        name: "twitter:title",
+        content: "Kominimo — Live Classroom Quizzes Your Students Race Through",
+      },
+      {
+        property: "og:description",
+        content:
+          "Tutors build a quiz, share one link, and hit start. Students join a live lobby, answer against the clock, and land on a speed-and-accuracy leaderboard.",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Tutors build a quiz, share one link, and hit start. Students join a live lobby, answer against the clock, and land on a speed-and-accuracy leaderboard.",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -107,7 +120,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent as never,
 });
-
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
@@ -139,4 +151,3 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
-

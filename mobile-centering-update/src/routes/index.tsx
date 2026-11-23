@@ -1,0 +1,149 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+
+import { MarketingLayout } from "@/components/site/MarketingLayout";
+import { getClassPublic } from "@/lib/member.functions";
+import { SITE } from "@/config/site";
+import { FREE_TIER } from "@/config/plans";
+import { ArrowRight, CheckCircle2, GraduationCap, Trophy, Users, Video } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+export const Route = createFileRoute("/")({
+  staticData: { sitemap: true },
+  head: () => ({
+    meta: [
+      { title: `${SITE.name} — ${SITE.tagline}` },
+      {
+        name: "description",
+        content:
+          "Create live quizzes, publish video or written courses, and give students one engaging place to learn with Kominimo.",
+      },
+      { property: "og:title", content: `${SITE.name} - ${SITE.tagline}` },
+      {
+        property: "og:description",
+        content:
+          "Create live quizzes, publish video or written courses, and give students one engaging place to learn.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: Landing,
+});
+
+function Landing() {
+  const navigate = useNavigate();
+  const [code, setCode] = useState("");
+
+  const join = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const clean = code.trim().toUpperCase();
+    if (clean.length < 4) return;
+    // Class and quiz codes share the same alphabet - check classes first,
+    // then send whatever is left to the quiz join flow (it shows "not found").
+    let isClass = false;
+    try {
+      isClass = Boolean(await getClassPublic({ data: { code: clean } }));
+    } catch {
+      isClass = false;
+    }
+    if (isClass) {
+      navigate({ to: "/class/$code", params: { code: clean } });
+    } else {
+      navigate({ to: "/join/$code", params: { code: clean } });
+    }
+  };
+
+  return (
+    <MarketingLayout>
+
+      <>
+        <section className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] items-center gap-12 px-5 pb-20 pt-8 sm:px-8 sm:pt-14 lg:grid-cols-2 lg:gap-16 lg:pb-28">
+          <div className="pop-in text-center lg:text-left">
+            <span className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-foreground sm:text-sm">
+              <span className="size-2 rounded-full bg-primary pulse-dot" /> Live classes for every class size
+            </span>
+            <h1 className="mt-6 text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl">
+              Teach live.<br /><span className="text-primary">Reach everyone.</span>
+            </h1>
+            <p className="mx-auto mt-5 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8 lg:mx-0">
+              Host live lectures, take real attendance automatically, and run quizzes your students actually enjoy - all in one place.
+            </p>
+            <p className="mt-3 inline-flex rounded-full border-2 border-secondary bg-accent px-3 py-1 text-sm font-bold text-secondary-foreground">
+              Free for classes up to {FREE_TIER.maxStudentsPerClass} students - attendance &amp; analytics included
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center lg:justify-start">
+              <Button asChild className="h-12 rounded-xl px-6 text-base font-bold">
+                <Link to="/auth"><Video /> Start a live class</Link>
+              </Button>
+              <form onSubmit={join} className="mx-auto flex w-full max-w-sm gap-2 sm:mx-0 sm:w-auto sm:max-w-none">
+                <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="Enter class code" maxLength={10} aria-label="Class or quiz code" className="h-12 min-w-0 flex-1 rounded-xl border-2 font-bold sm:w-44" />
+                <Button type="submit" variant="outline" className="h-12 rounded-xl border-2 px-4 font-bold">Join</Button>
+              </form>
+            </div>
+          </div>
+
+          <div className="relative">
+            <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-2xl">
+              <div className="flex items-center justify-between gap-2 border-b border-border px-5 py-3">
+                <span className="inline-flex items-center gap-2 text-xs font-bold text-destructive"><span className="size-2 rounded-full bg-destructive pulse-dot" /> LIVE</span>
+                <span className="truncate text-sm font-bold">BIO 101 · Human Physiology</span>
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-muted-foreground"><Users className="size-4" /> 1,240</span>
+              </div>
+              <div className="relative aspect-video bg-gradient-to-br from-secondary/25 via-accent to-primary/20 p-6">
+                <p className="text-xs font-bold uppercase text-muted-foreground">Slide 12</p>
+                <p className="mt-2 font-display text-2xl font-bold sm:text-3xl">The cardiac cycle</p>
+                <div className="mt-4 space-y-2">
+                  <div className="h-2 w-3/4 rounded-full bg-card" /><div className="h-2 w-1/2 rounded-full bg-card" />
+                </div>
+                <div className="absolute bottom-4 right-4 grid size-20 place-items-center rounded-2xl bg-secondary shadow-lg sm:size-24">
+                  <GraduationCap className="size-9 text-secondary-foreground" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 divide-x divide-border text-center">
+                <div className="p-4"><p className="font-display text-xl font-bold text-success">92%</p><p className="text-xs text-muted-foreground">Attendance</p></div>
+                <div className="p-4"><p className="font-display text-xl font-bold text-primary">Q3 · 14s</p><p className="text-xs text-muted-foreground">Live quiz</p></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="quizzes" className="border-t border-border bg-card py-16 sm:py-24">
+          <div className="mx-auto max-w-6xl px-5 sm:px-8">
+            <h2 className="mx-auto max-w-xl text-center text-3xl font-bold sm:text-4xl lg:mx-0 lg:text-left">Everything a live class needs.</h2>
+            <div className="mt-10 grid gap-8 sm:grid-cols-3">
+              {[
+                { icon: Users, title: "Classes of any size", body: "From small tutorials to lecture halls of thousands." },
+                { icon: CheckCircle2, title: "Honest attendance", body: "Counts real time present. Download as Excel or CSV." },
+                { icon: Trophy, title: "Live quizzes", body: "Timed questions and a leaderboard on the big screen." },
+              ].map((f) => (
+                <div key={f.title} className="flex flex-col items-center text-center sm:block sm:text-left">
+                  <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-primary"><f.icon className="size-5" /></span>
+                  <h3 className="mt-4 text-lg font-bold">{f.title}</h3>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{f.body}</p>
+                </div>
+              ))}
+            </div>
+            <Button asChild variant="link" className="mx-auto mt-8 flex w-fit px-0 font-bold sm:mx-0"><Link to="/courses">Or explore self-paced courses <ArrowRight /></Link></Button>
+          </div>
+        </section>
+
+        <section className="px-4 pb-16 sm:px-8 sm:pb-28">
+          <div className="relative mx-auto max-w-7xl overflow-hidden rounded-3xl bg-foreground px-5 py-10 text-background sm:py-14 sm:px-12 lg:flex lg:items-center lg:justify-between lg:px-16 lg:py-16">
+            <div className="absolute -right-8 -top-12 size-44 rounded-full border-[24px] border-secondary/30" />
+            <div className="absolute bottom-5 right-[32%] size-5 rounded-full bg-primary" />
+            <div className="relative mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">
+              <span className="inline-flex items-center gap-2 text-sm font-extrabold uppercase text-secondary"><GraduationCap className="size-5" /> Built for tutors</span>
+              <h2 className="mt-4 text-3xl font-bold sm:text-5xl">Your knowledge deserves a bigger classroom.</h2>
+              <p className="mx-auto mt-4 max-w-xl text-base text-background/70 sm:mt-5 sm:text-lg lg:mx-0">Create quizzes, publish courses, grow your audience, and give students a better way to learn.</p>
+            </div>
+            <Button asChild className="chunky relative mt-8 h-13 w-full rounded-xl px-8 sm:h-14 sm:w-auto text-base font-extrabold lg:mt-0"><Link to="/auth">Sign up as a tutor <ArrowRight /></Link></Button>
+          </div>
+        </section>
+      </>
+
+    </MarketingLayout>
+  );
+}

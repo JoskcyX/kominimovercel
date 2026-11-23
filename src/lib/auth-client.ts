@@ -1,6 +1,3 @@
-import { createAuthClient } from "@neondatabase/auth";
-import { BetterAuthVanillaAdapter } from "@neondatabase/auth/vanilla/adapters";
-
 /**
  * Browser-side authentication (Neon Auth / Managed Better Auth).
  * Everything the UI needs goes through the small functions below, so the rest of the app never
@@ -8,7 +5,15 @@ import { BetterAuthVanillaAdapter } from "@neondatabase/auth/vanilla/adapters";
  */
 let client: ReturnType<typeof make> | undefined;
 
-function make() {
+/**
+ * The SDK (~45 KB gzipped) is imported lazily, the first time it's needed. Students never sign in, so
+ * their phones never download it.
+ */
+async function make() {
+  const [{ createAuthClient }, { BetterAuthVanillaAdapter }] = await Promise.all([
+    import("@neondatabase/auth"),
+    import("@neondatabase/auth/vanilla/adapters"),
+  ]);
   const url = import.meta.env["VITE_NEON_AUTH_URL"] as string | undefined;
   if (!url) throw new Error("VITE_NEON_AUTH_URL is not set. See .env.example.");
   // Forgive a pasted JWKS URL or trailing slash — the Auth URL ends at …/auth.
@@ -29,7 +34,7 @@ const fail = (e: unknown, fallback = "Something went wrong. Please try again."):
 });
 
 export async function getSessionUser(): Promise<AuthUser | null> {
-  const { data } = await auth().getSession();
+  const { data } = await (await auth()).getSession();
   const u = data?.user;
   return u ? { id: u.id, email: u.email, name: u.name ?? "" } : null;
 }
@@ -40,7 +45,7 @@ let tokenCache: { token: string; exp: number } | null = null;
 export async function getAccessToken(): Promise<string | null> {
   const now = Math.floor(Date.now() / 1000);
   if (tokenCache && tokenCache.exp - 60 > now) return tokenCache.token;
-  const { data } = await auth().getSession();
+  const { data } = await (await auth()).getSession();
   const token = data?.session?.token;
   if (!token || token.split(".").length !== 3) return null; // not a JWT → not signed in
   try {
@@ -56,7 +61,7 @@ export async function getAccessToken(): Promise<string | null> {
 
 export async function signInWithEmail(email: string, password: string): Promise<AuthResult> {
   try {
-    const { error } = await auth().signIn.email({ email, password });
+    const { error } = await (await auth()).signIn.email({ email, password });
     tokenCache = null;
     return error ? fail(error, "Incorrect email or password.") : { ok: true };
   } catch (e) {
@@ -70,7 +75,7 @@ export async function signUpWithEmail(
   name: string,
 ): Promise<AuthResult> {
   try {
-    const { error } = await auth().signUp.email({ email, password, name });
+    const { error } = await (await auth()).signUp.email({ email, password, name });
     tokenCache = null;
     return error ? fail(error, "We couldn't create your account.") : { ok: true };
   } catch (e) {
@@ -81,7 +86,7 @@ export async function signUpWithEmail(
 export async function signOutUser(): Promise<void> {
   tokenCache = null;
   try {
-    await auth().signOut();
+    await (await auth()).signOut();
   } catch {
     /* already signed out */
   }
@@ -89,7 +94,7 @@ export async function signOutUser(): Promise<void> {
 
 export async function sendPasswordReset(email: string, redirectTo: string): Promise<AuthResult> {
   try {
-    const { error } = await auth().requestPasswordReset({ email, redirectTo });
+    const { error } = await (await auth()).requestPasswordReset({ email, redirectTo });
     return error ? fail(error) : { ok: true };
   } catch (e) {
     return fail(e);
@@ -101,7 +106,7 @@ export async function completePasswordReset(
   newPassword: string,
 ): Promise<AuthResult> {
   try {
-    const { error } = await auth().resetPassword({ token, newPassword });
+    const { error } = await (await auth()).resetPassword({ token, newPassword });
     return error ? fail(error, "This reset link is invalid or has expired.") : { ok: true };
   } catch (e) {
     return fail(e);
@@ -113,7 +118,7 @@ export async function resendVerificationEmail(
   callbackURL: string,
 ): Promise<AuthResult> {
   try {
-    const { error } = await auth().sendVerificationEmail({ email, callbackURL });
+    const { error } = await (await auth()).sendVerificationEmail({ email, callbackURL });
     return error ? fail(error) : { ok: true };
   } catch (e) {
     return fail(e);
@@ -146,7 +151,7 @@ export const takeSignupConsent = (): boolean => {
  */
 export async function deleteAuthIdentity(): Promise<boolean> {
   try {
-    const { error } = await auth().deleteUser({});
+    const { error } = await (await auth()).deleteUser({});
     return !error;
   } catch {
     return false;

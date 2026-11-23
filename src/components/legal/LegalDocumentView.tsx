@@ -59,7 +59,7 @@ export function LegalDocumentView({ doc, version }: { doc: LegalDocument; versio
           Effective {LEGAL_EFFECTIVE_DISPLAY} · Version {version}
         </p>
       </header>
-      <div className="grid gap-10 lg:grid-cols-[14rem_1fr]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[14rem_minmax(0,1fr)]">
         <nav aria-label="Contents" className="hidden lg:block">
           <div className="sticky top-6 space-y-1 text-sm">
             <p className="mb-2 font-bold">Contents</p>

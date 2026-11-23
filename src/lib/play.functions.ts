@@ -76,22 +76,34 @@ export const getPlayQuestions = createServerFn({ method: "GET" })
     }[];
   });
 
+export type BoardRow = {
+  id: string;
+  name: string;
+  score: number;
+  total_time_ms: number;
+  finished: boolean;
+  rank: number;
+  total: number;
+};
+
+/**
+ * Leaderboard / lobby list, capped. At 1,000 players the full list is ~100 KB — multiplied by every
+ * phone polling every few seconds that's tens of MB/s. Students get the top N and the total; their
+ * own position comes from getMyRank. One shared query per ~1.5 s per server instance.
+ */
 export const getBoard = createServerFn({ method: "GET" })
   .middleware([anonymous])
-  .inputValidator(z.object({ quizId: uuid }))
+  .inputValidator(z.object({ quizId: uuid, limit: z.number().int().min(1).max(100).default(30) }))
   .handler(async ({ data }) => {
     const { cached, withDb, sql } = await K();
-    return cached(`quiz:board:${data.quizId}`, POLL_TTL * 1.5, () =>
+    const rows = await cached(`quiz:board:${data.quizId}:${data.limit}`, POLL_TTL * 1.5, () =>
       withDb({}, (tx) =>
-        tx.all<{
-          id: string;
-          name: string;
-          score: number;
-          total_time_ms: number;
-          finished: boolean;
-        }>(sql`SELECT * FROM public.get_quiz_board(${data.quizId})`),
+        tx.all<BoardRow>(
+          sql`SELECT * FROM public.get_quiz_board_top(${data.quizId}, ${data.limit})`,
+        ),
       ),
     );
+    return { rows, total: rows[0]?.total ?? 0 };
   });
 
 export const getQuestionProgress = createServerFn({ method: "GET" })
@@ -129,23 +141,24 @@ export const joinQuiz = createServerFn({ method: "POST" })
     const {
       withDb,
       sql,
-      rateLimit,
-      LIMITS,
+      assertMemoryRate,
       STUDENT_CONSENT_TAG,
       signCapability,
       PARTICIPANT_TOKEN_TTL,
     } = await K();
-    const participantId = await withDb({}, async (tx) => {
-      await rateLimit(
-        tx,
-        `join-quiz:${context.ipHash}`,
-        LIMITS.join.windowSeconds,
-        LIMITS.join.max,
-      );
-      return tx.scalar<string>(
+    // In-memory, per instance: a whole school shares one IP, and a shared database counter would make
+    // 1,000 simultaneous joins queue behind one row lock. The quiz itself is capped in SQL (5,000).
+    assertMemoryRate(
+      `join-quiz:${context.ipHash}`,
+      600,
+      3000,
+      "Too many people are joining from this network. Please wait a moment.",
+    );
+    const participantId = await withDb({}, (tx) =>
+      tx.scalar<string>(
         sql`SELECT public.join_quiz(${data.quizId}, ${data.name}, ${data.phone}, ${STUDENT_CONSENT_TAG})`,
-      );
-    });
+      ),
+    );
     return {
       participantId: participantId!,
       token: await signCapability("participant", participantId!, PARTICIPANT_TOKEN_TTL),
@@ -162,22 +175,28 @@ async function participant(token: string) {
 export const submitAnswer = createServerFn({ method: "POST" })
   .middleware([anonymous])
   .inputValidator(tokenInput.extend({ questionId: uuid, response: z.string().max(500) }))
-  .handler(async ({ data, context }) => {
-    const { withDb, sql, rateLimit, LIMITS } = await K();
+  .handler(async ({ data }) => {
+    const { withDb, sql, assertMemoryRate } = await K();
     const pid = await participant(data.token);
-    return withDb({}, async (tx) => {
-      await rateLimit(tx, `submit:${pid}`, LIMITS.submit.windowSeconds, LIMITS.submit.max);
-      await rateLimit(
-        tx,
-        `submit-ip:${context.ipHash}`,
-        LIMITS.submit.windowSeconds,
-        LIMITS.submit.max * 20,
-      );
-      const ok = await tx.scalar<boolean>(
+    // The signed token already bounds abuse to one student, so a cheap in-memory cap is enough —
+    // no database write on the hottest path (it used to be two).
+    assertMemoryRate(`submit:${pid}`, 60, 120);
+    const ok = await withDb({}, (tx) =>
+      tx.scalar<boolean>(
         sql`SELECT public.submit_answer(${pid}, ${data.questionId}, ${data.response})`,
-      );
-      return { correct: Boolean(ok) };
-    });
+      ),
+    );
+    return { correct: Boolean(ok) };
+  });
+
+/** A student's own position (shown once, on the results screen — never polled). */
+export const getMyRank = createServerFn({ method: "GET" })
+  .middleware([anonymous])
+  .inputValidator(tokenInput)
+  .handler(async ({ data }) => {
+    const { withDb, sql } = await K();
+    const pid = await participant(data.token);
+    return withDb({}, (tx) => tx.one<BoardRow>(sql`SELECT * FROM public.get_my_rank(${pid})`));
   });
 
 export const finishParticipant = createServerFn({ method: "POST" })

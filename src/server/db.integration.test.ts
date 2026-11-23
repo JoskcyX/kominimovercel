@@ -406,4 +406,166 @@ d("database security model", () => {
       c.release();
     });
   });
+
+  describe("performance functions (behaviour must match the slow versions they replaced)", () => {
+    const owner = randomUUID();
+    let cid = "";
+    const members: string[] = [];
+
+    it("class_snapshot gives the whole class in one query, and nothing for an unknown member", async () => {
+      await rows(owner, "SELECT * FROM app.touch_profile('own@x.dev','Owner')");
+      const [c] = await rows(
+        owner,
+        "INSERT INTO public.classes (tutor_id,title,join_code,admit_mode,member_limit) VALUES ($1,'Snap','SNAP22','auto',300) RETURNING id",
+        [owner],
+      );
+      cid = c?.id;
+      await rows(
+        owner,
+        "INSERT INTO public.class_resources (class_id,title,kind,url,visible) VALUES ($1,'Slides','link','https://x.dev/a',true),($1,'Hidden','link','https://x.dev/b',false)",
+        [cid],
+      );
+      for (let i = 0; i < 40; i++) {
+        const r = await rows(null, "SELECT * FROM public.request_class_join($1,$2,$3,'v')", [
+          cid,
+          `Student ${i}`,
+          `0803000${String(i).padStart(4, "0")}`,
+        ]);
+        members.push(r[0]?.member_id);
+      }
+      const [snap] = await rows(null, "SELECT public.class_snapshot($1) AS s", [members[0]]);
+      expect(Object.keys(snap.s.members)).toHaveLength(40);
+      expect(snap.s.members[members[3] as string][0]).toBe("approved");
+      expect(snap.s.resources.map((r: any) => r.title)).toEqual(["Slides"]); // hidden ones are never included
+      expect(
+        (await rows(null, "SELECT public.class_snapshot($1) AS s", [randomUUID()]))[0]?.s,
+      ).toBeNull();
+    });
+
+    it("a returning student is recognised however they format their number (indexed, not regex-scanned)", async () => {
+      const again = await rows(
+        null,
+        "SELECT * FROM public.request_class_join($1,'Student 5','0803 000-0005 ','v')",
+        [cid],
+      );
+      expect(again[0]?.member_id).toBe(members[5]);
+      const [{ n }] = await rows(
+        owner,
+        "SELECT count(*)::int AS n FROM public.class_members WHERE class_id=$1",
+        [cid],
+      );
+      expect(n).toBe(40);
+    });
+
+    it("attendance heartbeats from many students run at the same time and all count", async () => {
+      await rows(
+        owner,
+        "UPDATE public.classes SET live_room_name='r', live_room_url='https://x.dev/r', session_started_at=now() WHERE id=$1",
+        [cid],
+      );
+      await Promise.all(
+        members.map((m) => rows(null, "SELECT public.live_heartbeat($1,true)", [m])),
+      );
+      await new Promise((r) => setTimeout(r, 1100));
+      await Promise.all(
+        members.map((m) => rows(null, "SELECT public.live_heartbeat($1,true)", [m])),
+      );
+      const att = await rows(
+        owner,
+        "SELECT present_seconds FROM public.class_session_attendance a JOIN public.class_sessions s ON s.id=a.session_id WHERE s.class_id=$1",
+        [cid],
+      );
+      expect(att).toHaveLength(40);
+      expect(att.every((a) => a.present_seconds >= 1)).toBe(true);
+    });
+
+    it("the flood guard stops unbounded waiting-room growth", async () => {
+      const [c] = await rows(
+        owner,
+        "INSERT INTO public.classes (tutor_id,title,join_code,admit_mode,member_limit) VALUES ($1,'Flood','FLOOD2','manual',1) RETURNING id",
+        [owner],
+      );
+      // cap = max(3 × limit, 500) = 500: seed 500 directly, the 501st through the function must be refused
+      const c0 = await pool.connect();
+      await c0.query(
+        "INSERT INTO public.class_members (class_id,name,phone,status,consent_version) SELECT $1,'n'||g,'0900'||g,'pending','v' FROM generate_series(1,500) g",
+        [c?.id],
+      );
+      c0.release();
+      await expect(
+        rows(null, "SELECT * FROM public.request_class_join($1,'Late Comer','09991234567','v')", [
+          c?.id,
+        ]),
+      ).rejects.toThrow(/class_full/);
+    });
+
+    describe("quiz scoring and leaderboards", () => {
+      let qz = "";
+      const pids: string[] = [];
+      const qids: string[] = [];
+      it("incremental scoring equals the true count, and a repeated submit never double-counts", async () => {
+        const [z] = await rows(
+          owner,
+          "INSERT INTO public.quizzes (tutor_id,title,join_code) VALUES ($1,'Board','BOARD2') RETURNING id",
+          [owner],
+        );
+        qz = z?.id;
+        for (let i = 1; i <= 3; i++) {
+          const [q] = await rows(
+            owner,
+            "INSERT INTO public.questions (quiz_id,order_index,type,prompt,options,correct_answer,time_limit) VALUES ($1,$2,'multiple_choice','q','[\"a\",\"b\"]','a',60) RETURNING id",
+            [qz, i],
+          );
+          qids.push(q?.id);
+        }
+        await rows(owner, "UPDATE public.quizzes SET status='lobby' WHERE id=$1", [qz]);
+        for (let i = 0; i < 60; i++)
+          pids.push(
+            (
+              await rows(null, "SELECT public.join_quiz($1,$2,$3,'v') AS id", [
+                qz,
+                `P${i}`,
+                `0701000${String(i).padStart(4, "0")}`,
+              ])
+            )[0]?.id,
+          );
+        await rows(owner, "UPDATE public.quizzes SET status='live', started_at=now() WHERE id=$1", [
+          qz,
+        ]);
+        // everyone answers question 1; the first 10 correctly
+        await Promise.all(
+          pids.map((p, i) =>
+            rows(null, "SELECT public.submit_answer($1,$2,$3)", [p, qids[0], i < 10 ? "a" : "b"]),
+          ),
+        );
+        // and the same answer arrives twice, concurrently, for one student
+        await Promise.all(
+          [1, 2, 3].map(() =>
+            rows(null, "SELECT public.submit_answer($1,$2,'a')", [pids[0], qids[0]]),
+          ),
+        );
+        const sc = await rows(
+          owner,
+          "SELECT p.score, (SELECT count(*)::int FROM public.answers a WHERE a.participant_id=p.id AND a.is_correct) AS truth FROM public.participants p WHERE p.quiz_id=$1",
+          [qz],
+        );
+        expect(sc.every((r) => r.score === r.truth)).toBe(true);
+        expect(sc.filter((r) => r.score === 1)).toHaveLength(10);
+      });
+      it("the capped leaderboard returns only the top N, correctly ranked, plus the total", async () => {
+        const top = await rows(null, "SELECT * FROM public.get_quiz_board_top($1, 5)", [qz]);
+        expect(top).toHaveLength(5);
+        expect(top.map((r) => r.rank)).toEqual([1, 2, 3, 4, 5]);
+        expect(top.every((r) => r.total === 60 && r.score === 1)).toBe(true);
+      });
+      it("a student outside the top N still gets their exact rank", async () => {
+        const [me] = await rows(null, "SELECT * FROM public.get_my_rank($1)", [pids[59]]);
+        expect(me.total).toBe(60);
+        expect(me.score).toBe(0);
+        expect(me.rank).toBeGreaterThan(10); // everyone with a point ranks above them
+        const all = await rows(null, "SELECT id FROM public.get_quiz_board($1)", [qz]);
+        expect(all.findIndex((r) => r.id === pids[59]) + 1).toBe(me.rank); // matches the full sort
+      });
+    });
+  });
 });

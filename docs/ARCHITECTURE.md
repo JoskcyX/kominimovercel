@@ -19,7 +19,7 @@
 
 ## Live updates
 
-There's no realtime socket. Screens poll (1.5–5 s). Public polls are shared per server instance for ~1 s (`src/server/cache.ts`), so 250 students ≈ one database query per second. The quiz clock lives in the database (trigger) and responses carry `server_now`, so a wrong phone clock can't skew timing.
+There's no realtime socket; screens poll with `usePolling` (jittered, paused in the background, backs off on errors). The student class page is answered from **one shared snapshot per class** (`public.class_snapshot`, cached ~1.5 s per server instance), so a thousand students cost one database query. Quiz state, questions and leaderboards use the same short shared cache (`src/server/cache.ts`), and leaderboards are capped (top N + the student's own rank). The quiz clock lives in the database and responses carry `server_now`, so a wrong phone clock can't skew timing. See `docs/PERFORMANCE.md` for measurements and trade-offs.
 
 ## Files
 

@@ -59,27 +59,31 @@ export const authed = createMiddleware({ type: "function" })
       const { AppError } = await import("@/server/errors");
       throw new AppError("UNAUTHENTICATED", "UNAUTHENTICATED");
     }
-    const user = await verifyAccessToken(token);
-    const actor = await withDb({ userId: user.id }, async (tx) => {
-      const p = await tx.one(sql`SELECT * FROM app.touch_profile(${user.email}, ${user.name})`);
-      const legalOk = await tx.scalar<boolean>(
-        sql`SELECT app.legal_current(${LEGAL_VERSIONS.terms}, ${LEGAL_VERSIONS.privacy})`,
-      );
-      return { p: p!, legalOk: Boolean(legalOk) };
-    });
+    const user = await verifyAccessToken(token); // the token is verified on EVERY request
+    const { getCachedActor, setCachedActor } = await import("@/server/actor-cache");
+    let base = getCachedActor(user.id);
+    if (!base) {
+      const loaded = await withDb({ userId: user.id }, async (tx) => {
+        const p = await tx.one(sql`SELECT * FROM app.touch_profile(${user.email}, ${user.name})`);
+        const legalOk = await tx.scalar<boolean>(
+          sql`SELECT app.legal_current(${LEGAL_VERSIONS.terms}, ${LEGAL_VERSIONS.privacy})`,
+        );
+        return { p: p!, legalOk: Boolean(legalOk) };
+      });
+      base = {
+        userId: user.id,
+        email: loaded.p["email"] ?? user.email,
+        displayName: loaded.p["display_name"] ?? "",
+        plan: loaded.p["plan"] === "pro" ? "pro" : "free",
+        status: loaded.p["status"] === "suspended" ? "suspended" : "active",
+        roles: (loaded.p["roles"] as string[]) ?? [],
+        referralCode: loaded.p["referral_code"] ?? null,
+        legalOk: loaded.legalOk,
+      };
+      setCachedActor(user.id, base);
+    }
     const ip = clientIp(request);
-    const value: Actor = {
-      userId: user.id,
-      email: actor.p["email"] ?? user.email,
-      displayName: actor.p["display_name"] ?? "",
-      plan: actor.p["plan"] === "pro" ? "pro" : "free",
-      status: actor.p["status"] === "suspended" ? "suspended" : "active",
-      roles: (actor.p["roles"] as string[]) ?? [],
-      referralCode: actor.p["referral_code"] ?? null,
-      legalOk: actor.legalOk,
-      ip,
-      ipHash: await hashValue(ip),
-    };
+    const value: Actor = { ...base, ip, ipHash: await hashValue(ip) };
     return next({ context: { actor: value } });
   });
 

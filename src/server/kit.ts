@@ -3,6 +3,7 @@ export { withDb, sql, rawSql, setClause, type Tx, type Row } from "./db";
 export { AppError } from "./errors";
 export { rateLimit, LIMITS } from "./rate-limit";
 export { cached } from "./cache";
+export { assertMemoryRate, memoryRateLimit } from "./memory-rate-limit";
 export { makeCode } from "./codes";
 export { serverEnv } from "./env";
 export {

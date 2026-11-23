@@ -20,14 +20,22 @@ const b64u = (buf: ArrayBuffer) =>
 const fromB64u = (s: string) =>
   Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
 
-const hmacKey = (secret: string, usage: KeyUsage[]) =>
-  crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    usage,
-  );
+// Importing a key costs more than the HMAC itself and used to happen on every request. Do it once.
+const keys = new Map<string, Promise<CryptoKey>>();
+const hmacKey = (secret: string, _usage?: KeyUsage[]) => {
+  let k = keys.get(secret);
+  if (!k) {
+    k = crypto.subtle.importKey(
+      "raw",
+      enc.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign", "verify"],
+    );
+    keys.set(secret, k);
+  }
+  return k;
+};
 
 export async function signCapability(
   kind: CapabilityKind,

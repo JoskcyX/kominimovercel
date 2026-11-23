@@ -79,26 +79,22 @@ export const getLiveStatus = createServerFn({ method: "POST" })
 export const joinLiveClass = createServerFn({ method: "POST" })
   .middleware([anonymous])
   .inputValidator(tokenInput)
-  .handler(async ({ data, context }) => {
-    const { withDb, sql, AppError, verifyCapability, rateLimit, LIMITS } = await K();
+  .handler(async ({ data }) => {
+    const { withDb, sql, AppError, verifyCapability, assertMemoryRate } = await K();
     const { meetingToken } = await D();
     const memberId = await verifyCapability("member", data.token);
-    const m = await withDb({}, async (tx) => {
-      await rateLimit(
-        tx,
-        `livejoin:${memberId}`,
-        LIMITS.liveToken.windowSeconds,
-        LIMITS.liveToken.max,
-      );
-      await rateLimit(tx, `livejoin-ip:${context.ipHash}`, 60, 600);
-      return tx.one<{
+    // Per student, in memory. (A shared per-IP database counter would make a whole class joining at
+    // once queue behind a single row lock; the video provider's own limits are handled in daily.ts.)
+    assertMemoryRate(`livejoin:${memberId}`, 60, 20);
+    const m = await withDb({}, (tx) =>
+      tx.one<{
         status: string;
         name: string;
         live_room_name: string | null;
         live_room_url: string | null;
         is_rep: boolean;
-      }>(sql`SELECT * FROM public.member_live(${memberId})`);
-    });
+      }>(sql`SELECT * FROM public.member_live(${memberId})`),
+    );
     if (!m || m.status !== "approved")
       throw new AppError("FORBIDDEN", "You haven't been approved for this class yet.");
     if (!m.live_room_name || !m.live_room_url)

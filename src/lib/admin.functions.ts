@@ -68,6 +68,7 @@ export const adminSetUserStatus = createServerFn({ method: "POST" })
     await withDb({ userId: context.actor.userId }, (tx) =>
       tx.exec(sql`SELECT public.admin_set_user_status(${data.userId}, ${data.status})`),
     );
+    (await import("@/server/actor-cache")).forgetActor(data.userId); // suspension applies at once here
     return { ok: true };
   });
 
@@ -80,6 +81,7 @@ export const adminSetUserPlan = createServerFn({ method: "POST" })
     await withDb({ userId: context.actor.userId }, (tx) =>
       tx.exec(sql`SELECT public.admin_set_user_plan(${data.userId}, ${data.plan}, ${limit})`),
     );
+    (await import("@/server/actor-cache")).forgetActor(data.userId);
     return { ok: true };
   });
 

@@ -41,6 +41,7 @@ export const acceptLegal = createServerFn({ method: "POST" })
       await tx.exec(sql`INSERT INTO public.audit_log (actor_id, action, target_type, target_id, meta, ip_hash)
         VALUES (${context.actor.userId}, 'legal.accepted', 'user', ${context.actor.userId}, ${JSON.stringify(LEGAL_VERSIONS)}::jsonb, ${context.actor.ipHash})`);
     });
+    (await import("@/server/actor-cache")).forgetActor(context.actor.userId); // pick up legalOk immediately
     return { ok: true };
   });
 

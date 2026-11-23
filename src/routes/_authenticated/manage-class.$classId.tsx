@@ -232,9 +232,9 @@ function ClassRoom() {
       {roomUrl && <LiveRoom url={roomUrl} onLeave={() => setRoomUrl(null)} leaveLabel="Close" overlay={pending.length && !cls.data.rep_member_id ? liveNotices : null} />}
       <main className="mx-auto max-w-5xl px-4 py-5 pb-24 sm:px-6 sm:py-8">
         <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm font-bold text-muted-foreground"><ArrowLeft className="size-4" /> Dashboard</Link>
-        <h1 className="mt-3 break-words text-2xl font-bold sm:text-4xl">{cls.data.title}</h1>
+        <h1 className="mt-3 break-words text-center text-2xl font-bold sm:text-left sm:text-4xl">{cls.data.title}</h1>
         <div className="mt-4 grid gap-3 border-y border-border py-4 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
-          <div><p className="text-sm text-muted-foreground">Class code</p><p className="text-2xl font-bold tracking-widest">{cls.data.join_code}</p></div>
+          <div className="text-center sm:text-left"><p className="text-sm text-muted-foreground">Class code</p><p className="text-2xl font-bold tracking-widest">{cls.data.join_code}</p></div>
           <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
           {cls.data.live_room_name ? (
             <>
@@ -259,18 +259,18 @@ function ClassRoom() {
             <TabsTrigger value="settings" className="min-h-11 gap-1.5 px-2"><Settings className="size-4 shrink-0" /> Settings</TabsTrigger>
           </TabsList>
           <TabsContent value="classroom" forceMount className="mt-6 data-[state=inactive]:hidden">
-            <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border pb-4 text-sm">
+            <div className="mb-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-b sm:justify-start border-border pb-4 text-sm">
               <span className="flex items-center gap-2 font-bold"><span className={`size-2 shrink-0 rounded-full ${cls.data.live_room_name ? "bg-secondary" : "bg-muted-foreground"}`} />{cls.data.live_room_name ? "Class is live" : "Not live"}</span>
               <span><strong>{approved.length}</strong> approved students</span>
               <span><strong>{approved.filter(isLive).length}</strong> in live class</span>
               {cls.data.rep_member_id && <span className="text-muted-foreground">Class rep: {approved.find((m) => m.id === cls.data.rep_member_id)?.name ?? "Assigned"}</span>}
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-between">
               <h2 className="text-2xl font-bold">Join requests ({pending.length})</h2>
               {pending.length > 1 && <Button size="sm" onClick={() => admitAll.mutate()} className="rounded-full font-bold">Let all in</Button>}
             </div>
             <div className="mt-3 grid gap-2">
-              {pending.length === 0 && <p className="text-sm text-muted-foreground">No pending requests.</p>}
+              {pending.length === 0 && <p className="text-center text-sm text-muted-foreground sm:text-left">No pending requests.</p>}
               {pending.map((m) => (
                 <div key={m.id} className="surface-card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 p-3">
                   <div className="min-w-0 break-words"><p className="font-bold">{m.name}</p><p className="text-xs text-muted-foreground">{m.phone}</p></div>
@@ -290,7 +290,7 @@ function ClassRoom() {
 
           </TabsContent>
           {features.quizzes && <TabsContent value="quizzes" forceMount className="mt-6 data-[state=inactive]:hidden">
-            <h2 className="text-2xl font-bold">Quizzes</h2>
+            <h2 className="text-center text-2xl font-bold sm:text-left">Quizzes</h2>
             <div className="surface-card mt-3 grid gap-2 p-4">
               <select value={pick} onChange={(e) => setPick(e.target.value)} className="h-11 w-full min-w-0 max-w-full rounded-xl border-2 border-input bg-background px-3">
                 <option value="">Choose one of your quizzes…</option>
@@ -337,8 +337,8 @@ function ClassRoom() {
           </TabsContent>}
           <TabsContent value="settings" forceMount className="mt-6 data-[state=inactive]:hidden">
             <div className="surface-card mb-8 p-4">
-              <h2 className="text-xl font-bold">Extra features</h2>
-              <p className="text-sm text-muted-foreground">Turn on only what you need. Switched-on features show up on your class page.</p>
+              <h2 className="text-center text-xl font-bold sm:text-left">Extra features</h2>
+              <p className="text-center text-sm text-muted-foreground sm:text-left">Turn on only what you need. Switched-on features show up on your class page.</p>
               <div className="mt-3 grid gap-2">
                 {FEATURES.map((f) => (
                   <label key={f.key} className="grid min-h-11 cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-border px-3 py-2">
@@ -348,7 +348,7 @@ function ClassRoom() {
                 ))}
               </div>
             </div>
-            <h2 className="text-2xl font-bold">Class settings</h2>
+            <h2 className="text-center text-2xl font-bold sm:text-left">Class settings</h2>
         <div className="mt-4 border-b border-border grid gap-4 p-4 sm:grid-cols-2">
           <label className="grid min-w-0 gap-1 text-sm font-bold">
             Letting students in

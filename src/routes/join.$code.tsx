@@ -10,11 +10,22 @@ import { Label } from "@/components/ui/label";
 import { ConsentCheckbox } from "@/components/legal/ConsentCheckbox";
 import { SITE } from "@/config/site";
 import {
-  finishParticipant, getAnswerKey, getBoard, getPlayQuestions, getQuestionProgress, getQuizByCode, joinQuiz,
-  participantAlive, submitAnswer, type QuizPublic,
+  finishParticipant,
+  getAnswerKey,
+  getBoard,
+  getMyRank,
+  getPlayQuestions,
+  getQuestionProgress,
+  getQuizByCode,
+  joinQuiz,
+  participantAlive,
+  submitAnswer,
+  type QuizPublic,
 } from "@/lib/play.functions";
 import { useQuizTimer } from "@/hooks/useQuizTimer";
-import { formatMs, MEDAL, toOptions, type BoardRow, type PlayableQuestion } from "@/lib/quiz";
+import { usePolling } from "@/hooks/usePolling";
+import { formatMs, MEDAL, toOptions, type PlayableQuestion } from "@/lib/quiz";
+import type { BoardRow } from "@/lib/play.functions";
 
 export const Route = createFileRoute("/join/$code")({
   staticData: { sitemap: false },
@@ -22,7 +33,10 @@ export const Route = createFileRoute("/join/$code")({
   head: () => ({
     meta: [
       { title: `Join the live quiz — ${SITE.name}` },
-      { name: "description", content: "Enter your name, wait in the lobby and play the live quiz." },
+      {
+        name: "description",
+        content: "Enter your name, wait in the lobby and play the live quiz.",
+      },
       { name: "robots", content: "noindex" },
       { property: "og:title", content: `Join the live quiz — ${SITE.name}` },
       { property: "og:description", content: "Enter your name and play the live quiz." },
@@ -82,35 +96,38 @@ function JoinPage() {
     loadQuiz();
   }, [loadQuiz, storageKey]);
 
-  // Live updates: poll the shared quiz state (the server shares one query between all students).
-  useEffect(() => {
-    if (!quiz?.id) return;
-    const poll = setInterval(loadQuiz, 1500);
-    return () => clearInterval(poll);
-  }, [quiz?.id, loadQuiz]);
+  // Live updates. The server shares ONE database read per second between all students; here we also
+  // spread requests out (jitter), stop in the background, back off on errors, and ask less often when
+  // nothing is happening.
+  const pollQuiz = useCallback(async () => {
+    setQuiz(await getQuizByCode({ data: { code: code.toUpperCase() } })); // throws on failure → backoff
+    setLoading(false);
+  }, [code]);
+  usePolling(
+    pollQuiz,
+    !quiz ? 1500 : quiz.status === "live" ? 1500 : quiz.status === "ended" ? 15000 : 3000,
+  );
 
   // The tutor can remove a student mid-session.
-  useEffect(() => {
+  const checkAlive = useCallback(async () => {
     if (!session) return;
-    const check = async () => {
-      try {
-        const { alive } = await participantAlive({ data: { token: session.token } });
-        if (!alive) {
-          localStorage.removeItem(storageKey);
-          setKicked(true);
-        }
-      } catch (e) {
-        // Expired token (24 h) → just ask them to enter their details again.
-        if (e instanceof Error && /expired/i.test(e.message)) {
-          localStorage.removeItem(storageKey);
-          setSession(null);
-        }
+    try {
+      const { alive } = await participantAlive({ data: { token: session.token } });
+      if (!alive) {
+        localStorage.removeItem(storageKey);
+        setKicked(true);
       }
-    };
-    void check();
-    const timer = setInterval(check, 5000);
-    return () => clearInterval(timer);
+    } catch (e) {
+      // Expired token (24 h) → just ask them to enter their details again.
+      if (e instanceof Error && /expired/i.test(e.message)) {
+        localStorage.removeItem(storageKey);
+        setSession(null);
+        return;
+      }
+      throw e;
+    }
   }, [session, storageKey]);
+  usePolling(checkAlive, session ? 15000 : null);
 
   const join = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -126,12 +143,16 @@ function JoinPage() {
     }
     setJoining(true);
     try {
-      const result = await joinQuiz({ data: { quizId: quiz.id, name: parsed.data.name, phone: parsed.data.phone, consent: true } });
+      const result = await joinQuiz({
+        data: { quizId: quiz.id, name: parsed.data.name, phone: parsed.data.phone, consent: true },
+      });
       const next = { participantId: result.participantId, token: result.token };
       localStorage.setItem(storageKey, JSON.stringify(next));
       setSession(next);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not join — the lobby may not be open yet.");
+      toast.error(
+        e instanceof Error ? e.message : "Could not join — the lobby may not be open yet.",
+      );
     } finally {
       setJoining(false);
     }
@@ -210,7 +231,12 @@ function JoinPage() {
                 className="h-12 rounded-xl border-2"
               />
             </div>
-            <ConsentCheckbox id="quiz-consent" checked={agreed} onChange={setAgreed} audience="student" />
+            <ConsentCheckbox
+              id="quiz-consent"
+              checked={agreed}
+              onChange={setAgreed}
+              audience="student"
+            />
             <Button
               type="submit"
               disabled={joining || !agreed || quiz.status === "draft" || quiz.status === "ended"}
@@ -238,22 +264,18 @@ function JoinPage() {
 }
 
 function Lobby({ quiz }: { quiz: Quiz }) {
-  const [board, setBoard] = useState<BoardRow[]>([]);
-
-  useEffect(() => {
-    const load = async () => {
-      try { setBoard(await getBoard({ data: { quizId: quiz.id } })); } catch { /* retry on next tick */ }
-    };
-    void load();
-    const timer = setInterval(load, 3000);
-    return () => clearInterval(timer);
+  const [board, setBoard] = useState<{ rows: BoardRow[]; total: number }>({ rows: [], total: 0 });
+  // Only the first 60 names are shown — with hundreds of players the full list is both unreadable and heavy.
+  const loadBoard = useCallback(async () => {
+    setBoard(await getBoard({ data: { quizId: quiz.id, limit: 60 } }));
   }, [quiz.id]);
+  usePolling(loadBoard, 4000);
 
   return (
     <div className="grid min-h-screen place-items-center confetti-bg px-4 py-6 sm:px-6 sm:py-12">
       <div className="pop-in w-full max-w-xl surface-card p-5 sm:p-8 text-center">
         <span className="inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-1 text-sm font-bold text-secondary-foreground">
-          <Users className="size-4" /> {board.length} in the lobby
+          <Users className="size-4" /> {board.total} in the lobby
         </span>
         <h1 className="mt-4 text-3xl font-bold">{quiz.title}</h1>
         <p className="mt-2 text-muted-foreground">
@@ -269,7 +291,7 @@ function Lobby({ quiz }: { quiz: Quiz }) {
           ))}
         </div>
         <div className="mt-8 flex flex-wrap justify-center gap-2">
-          {board.map((person) => (
+          {board.rows.map((person) => (
             <span
               key={person.id}
               className="max-w-full break-words rounded-full border-2 border-border bg-card px-3 py-1 text-sm font-bold"
@@ -277,6 +299,11 @@ function Lobby({ quiz }: { quiz: Quiz }) {
               {person.name}
             </span>
           ))}
+          {board.total > board.rows.length && (
+            <span className="rounded-full bg-muted px-3 py-1 text-sm font-bold text-muted-foreground">
+              + {board.total - board.rows.length} more
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -302,20 +329,36 @@ function Play({ quiz, session }: { quiz: Quiz; session: Session }) {
   const locked = useRef(false);
   // Device clocks can be wrong; every deadline is compared against the SERVER's clock.
   const srvOffset = useRef(0);
-  srvOffset.current = quiz.server_now ? Date.parse(quiz.server_now) - Date.now() : srvOffset.current;
+  srvOffset.current = quiz.server_now
+    ? Date.parse(quiz.server_now) - Date.now()
+    : srvOffset.current;
   const srvNow = () => Date.now() + srvOffset.current;
 
   useEffect(() => {
     let live = true;
     const load = () =>
       getPlayQuestions({ data: { quizId: quiz.id } })
-        .then((rows) => live && setQuestions(rows.map((row) => ({ ...row, options: toOptions(row.options) })) as PlayableQuestion[]))
+        .then(
+          (rows) =>
+            live &&
+            setQuestions(
+              rows.map((row) => ({
+                ...row,
+                options: toOptions(row.options),
+              })) as PlayableQuestion[],
+            ),
+        )
         .catch(() => live && setTimeout(load, 2000));
     void load();
-    return () => { live = false; };
+    return () => {
+      live = false;
+    };
   }, [quiz.id]);
 
   const current = questions?.[index];
+  // Everyone's clock hits zero at the same moment. Recording an UNANSWERED question isn't urgent, so each
+  // phone waits a random moment first — otherwise 1,000 requests land in the same instant, every question.
+  const spread = (maxMs: number) => new Promise<void>((r) => setTimeout(r, Math.random() * maxMs));
 
   const goNext = useCallback(async () => {
     const isLast = quiz.skip_signal >= (questions?.length ?? 0);
@@ -339,11 +382,15 @@ function Play({ quiz, session }: { quiz: Quiz; session: Session }) {
       locked.current = true;
       // Timing is measured by the server from the shared question clock — we send only the answer.
       try {
-        const { correct } = await submitAnswer({ data: { token, questionId: current.id, response } });
+        const { correct } = await submitAnswer({
+          data: { token, questionId: current.id, response },
+        });
         setSubmitted(true);
         setWasCorrect(correct);
         if (quiz.reveal_answers) {
-          const { answer: key } = await getAnswerKey({ data: { token, questionId: current.id } }).catch(() => ({ answer: null }));
+          const { answer: key } = await getAnswerKey({
+            data: { token, questionId: current.id },
+          }).catch(() => ({ answer: null }));
           if (typeof key === "string") setAnswerKey(key);
         }
       } catch (e) {
@@ -367,7 +414,9 @@ function Play({ quiz, session }: { quiz: Quiz; session: Session }) {
     setAnswerKey(null);
     setWaiting({ answered: 0, total: 0 });
     startedAt.current = srvNow();
-    deadline.current = quiz.question_deadline_at ? Date.parse(quiz.question_deadline_at) : srvNow() + current.time_limit * 1000;
+    deadline.current = quiz.question_deadline_at
+      ? Date.parse(quiz.question_deadline_at)
+      : srvNow() + current.time_limit * 1000;
     pausedAt.current = null;
     setRemaining(Math.max(0, Math.ceil((deadline.current - srvNow()) / 1000)));
     const timer = setInterval(() => {
@@ -405,7 +454,8 @@ function Play({ quiz, session }: { quiz: Quiz; session: Session }) {
   useEffect(() => {
     if (!quiz.question_deadline_at) return;
     deadline.current = Date.parse(quiz.question_deadline_at);
-    const clock = quiz.paused && quiz.question_paused_at ? Date.parse(quiz.question_paused_at) : srvNow();
+    const clock =
+      quiz.paused && quiz.question_paused_at ? Date.parse(quiz.question_paused_at) : srvNow();
     setRemaining(Math.max(0, Math.ceil((deadline.current - clock) / 1000)));
   }, [quiz.question_deadline_at, quiz.question_paused_at, quiz.paused, current?.id]);
 
@@ -413,15 +463,26 @@ function Play({ quiz, session }: { quiz: Quiz; session: Session }) {
   useEffect(() => {
     if (quiz.skip_signal === lastSkip.current || done || !current) return;
     lastSkip.current = quiz.skip_signal;
-    void (async () => { if (!submitted) await submit(""); await goNext(); })();
-  }, [quiz.skip_signal, done, current, submitted, submit, goNext]);
+    const skipped = current;
+    if (!submitted) {
+      // Fire-and-forget (jittered) so moving to the next question is instant for the student.
+      void spread(1500)
+        .then(() => submitAnswer({ data: { token, questionId: skipped.id, response: "" } }))
+        .catch(() => undefined);
+    }
+    void goNext();
+  }, [quiz.skip_signal, done, current, submitted, goNext, token]);
 
   // Time is up: lock the answer while the shared database cursor advances everyone.
   useEffect(() => {
     if (!current || done || remaining > 0 || quiz.paused || srvNow() < deadline.current) return;
     let cancelled = false;
     (async () => {
-      if (!submitted) await submit("");
+      if (!submitted) {
+        await spread(1200);
+        if (cancelled) return;
+        await submit("");
+      }
       if (!cancelled && index + 1 >= (questions?.length ?? 0)) {
         await finishParticipant({ data: { token } }).catch(() => undefined);
       }
@@ -432,27 +493,14 @@ function Play({ quiz, session }: { quiz: Quiz; session: Session }) {
   }, [remaining, current?.id, done, submitted, submit, goNext, current, quiz.paused]);
 
   // Show answer progress while waiting for the tutor's next question.
-  useEffect(() => {
-    if (!current || done || !submitted || quiz.paused) return;
-    let stop = false;
-    const check = async () => {
-      try {
-        const row = await getQuestionProgress({ data: { quizId: quiz.id, questionId: current.id } });
-        if (!stop) setWaiting(row);
-      } catch { /* retry on next tick */ }
-    };
-    void check();
-    const poll = setInterval(check, 1500);
-    return () => {
-      stop = true;
-      clearInterval(poll);
-    };
-  }, [submitted, current?.id, done, goNext, quiz.id, current, quiz.paused]);
+  const checkProgress = useCallback(async () => {
+    if (!current) return;
+    setWaiting(await getQuestionProgress({ data: { quizId: quiz.id, questionId: current.id } }));
+  }, [quiz.id, current?.id]);
+  usePolling(checkProgress, current && !done && submitted && !quiz.paused ? 2000 : null);
 
-
-
-
-  if (done || quiz.status === "ended") return <Results quiz={quiz} participantId={participantId} />;
+  if (done || quiz.status === "ended")
+    return <Results quiz={quiz} token={token} participantId={participantId} />;
 
   if (!questions) {
     return (
@@ -590,34 +638,44 @@ function Play({ quiz, session }: { quiz: Quiz; session: Session }) {
                     placeholder="Type your answer…"
                     className="h-14 rounded-xl border-2 text-lg"
                   />
-                  <Button type="submit" className="chunky h-auto min-h-12 w-full whitespace-normal rounded-xl py-3 text-base font-bold">
+                  <Button
+                    type="submit"
+                    className="chunky h-auto min-h-12 w-full whitespace-normal rounded-xl py-3 text-base font-bold"
+                  >
                     Submit answer
                   </Button>
                 </form>
               )}
             </>
           )}
-
         </div>
       </div>
     </div>
   );
 }
 
-function Results({ quiz, participantId }: { quiz: Quiz; participantId: string }) {
-  const [board, setBoard] = useState<BoardRow[]>([]);
+function Results({
+  quiz,
+  token,
+  participantId,
+}: {
+  quiz: Quiz;
+  token: string;
+  participantId: string;
+}) {
+  const [board, setBoard] = useState<{ rows: BoardRow[]; total: number }>({ rows: [], total: 0 });
+  const [me, setMe] = useState<BoardRow | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try { setBoard(await getBoard({ data: { quizId: quiz.id } })); } catch { /* retry on next tick */ }
-    };
-    void load();
-    const timer = setInterval(load, 5000);
-    return () => clearInterval(timer);
-  }, [quiz.id]);
-
-  const me = useMemo(() => board.find((row) => row.id === participantId), [board, participantId]);
-  const rank = board.findIndex((row) => row.id === participantId) + 1;
+  // The top of the leaderboard is shared by everyone; a student's own rank is a single cheap lookup.
+  const load = useCallback(async () => {
+    const [top, mine] = await Promise.all([
+      getBoard({ data: { quizId: quiz.id, limit: 30 } }),
+      getMyRank({ data: { token } }),
+    ]);
+    setBoard(top);
+    setMe(mine);
+  }, [quiz.id, token]);
+  usePolling(load, 10000);
 
   return (
     <div className="min-h-screen confetti-bg px-4 py-6 sm:px-6 sm:py-12">
@@ -628,7 +686,8 @@ function Results({ quiz, participantId }: { quiz: Quiz; participantId: string })
           {me && (
             <p className="mt-2 text-muted-foreground">
               You scored <span className="font-bold text-foreground">{me.score}</span> in{" "}
-              <span className="font-bold text-foreground">{formatMs(me.total_time_ms)}</span> — rank #{rank}.
+              <span className="font-bold text-foreground">{formatMs(me.total_time_ms)}</span> — rank
+              #{me.rank} of {me.total}.
             </p>
           )}
         </div>
@@ -637,7 +696,7 @@ function Results({ quiz, participantId }: { quiz: Quiz; participantId: string })
           <Trophy className="size-6 text-primary" /> Leaderboard
         </h2>
         <div className="mt-3 space-y-2">
-          {board.map((row, position) => (
+          {board.rows.map((row, position) => (
             <div
               key={row.id}
               className={`surface-card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-3 sm:px-5 ${
@@ -656,6 +715,23 @@ function Results({ quiz, participantId }: { quiz: Quiz; participantId: string })
               </div>
             </div>
           ))}
+          {me && me.rank > board.rows.length && (
+            <>
+              <p className="py-1 text-center text-muted-foreground">⋯</p>
+              <div className="surface-card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-primary px-3 py-3 sm:px-5">
+                <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-muted font-display font-bold">
+                    {me.rank}
+                  </span>
+                  <p className="min-w-0 break-words font-bold">{me.name} (you)</p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1 text-sm font-bold sm:flex-row sm:gap-4">
+                  <span className="text-primary">{me.score}</span>
+                  <span className="text-muted-foreground">{formatMs(me.total_time_ms)}</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

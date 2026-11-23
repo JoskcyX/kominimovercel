@@ -1,58 +1,198 @@
 # Kominimo
 
-Live classes with automatic attendance, quizzes students enjoy, and publishable courses — free for classes of up to **250 students**.
+**A live learning platform built for educational institutions.**
 
-Tutors teach live (video, slides, pop quizzes), students join with a link, a name and a phone/matric number (no account), and every session produces an attendance record and quiz analytics.
+Kominimo provides the infrastructure for tutors and educational institutions to conduct live online classes, manage student participation, assess learning, and deliver structured courses.
 
-## Stack
+The platform combines live video sessions, automated attendance tracking, interactive quizzes, and course publishing in one system.
 
-| Concern | Choice |
-| --- | --- |
-| App | TanStack Start (React 19, TanStack Router/Query), Tailwind v4, shadcn/ui |
-| Database | **Neon Postgres** — reached only from server functions, as a least-privilege role with Row Level Security |
-| Auth | **Neon Auth** (Managed Better Auth) — the browser signs in; every server call verifies the JWT |
-| Files | **Neon Object Storage** (S3-compatible), private, presigned URLs |
-| Live video | Daily.co |
-| Hosting | **Vercel** (Nitro `vercel` preset) |
+Students can join a class using a shared link and their name and phone number or matriculation number. No student account is required.
 
-## Quick start
+Kominimo supports classes of up to **250 participants at no cost**.
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, TanStack Start, TanStack Router, TanStack Query |
+| Styling | Tailwind CSS v4, shadcn/ui |
+| Backend | TanStack Start Server Functions, Nitro |
+| Database | Neon PostgreSQL |
+| Authentication | Neon Auth (Better Auth) |
+| Object Storage | Neon Object Storage (S3-compatible) |
+| Live Communication | Daily.co |
+| Deployment | Vercel |
+
+### Infrastructure and Security
+
+- Database access is restricted to server-side operations.
+- Application access uses managed authentication and server-side JWT verification.
+- Database operations use a least-privilege role with Row Level Security (RLS).
+- File storage uses private buckets and presigned URLs.
+- Server-only modules are isolated from browser bundles.
+
+---
+
+## Getting Started
+
+### Requirements
+
+- Node.js
+- npm
+- A Neon project with PostgreSQL, Neon Auth, and Object Storage configured
+- A Daily.co account
+
+### Installation
+
+Clone the repository and install dependencies:
 
 ```bash
+git clone <repository-url>
+cd kominimo
 npm install
-cp .env.example .env.local        # fill it in — see docs/SETUP-NEON.md
-npm run db:migrate                # applies db/migrations to your Neon database
-npm run check:env                 # validates env, DB, role safety, Neon Auth keys
-npm run dev                       # http://localhost:3000
 ```
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev` / `build` / `preview` | Vite dev server / production build / preview |
-| `npm run typecheck` · `lint` · `test` | Quality gates |
-| `npm run db:migrate` · `db:status` | Apply / list SQL migrations |
-| `npm run storage:cors` | One-off: allow browser uploads to your bucket |
-| `npm run check:env` | Pre-flight for a new environment |
-| `node scripts/smoke.mjs` | End-to-end smoke test of the production build (see `docs/SECURITY.md`) |
+Create your local environment file:
 
-## Where things live
+```bash
+cp .env.example .env.local
+```
 
+Configure the required environment variables using the instructions in `docs/SETUP-NEON.md`.
+
+Apply database migrations:
+
+```bash
+npm run db:migrate
 ```
-src/config/        ← EDIT HERE: site name & contact (site.ts), plans & pricing copy (plans.ts), legal versions (legal.ts)
-src/content/legal/ ← EDIT HERE: Terms of Use and Privacy Policy text
-src/routes/        Pages (public site, /auth, /dashboard, /manage-class, /quiz, /join, /class, /admin, …)
-src/lib/*.functions.ts   The server API (one file per area) — what the UI calls
-src/server/        Server-only code (DB, auth, storage, rate limits…) — the build refuses to bundle it for browsers
-db/migrations/     Ordered SQL — the whole schema, RLS policies and functions
-docs/              Setup, architecture, security, admin, customising
+
+Validate the environment configuration:
+
+```bash
+npm run check:env
 ```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+The application will be available at:
+
+http://localhost:3000
+
+---
+
+## Available Commands
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the development server |
+| `npm run build` | Generate a production build |
+| `npm run preview` | Preview the production build |
+| `npm run typecheck` | Run TypeScript checks |
+| `npm run lint` | Run code linting |
+| `npm run test` | Run the test suite |
+| `npm run db:migrate` | Apply database migrations |
+| `npm run db:status` | Check migration status |
+| `npm run storage:cors` | Configure browser upload permissions |
+| `npm run check:env` | Validate environment configuration |
+| `node scripts/smoke.mjs` | Run the production smoke test |
+
+---
+
+## Project Structure
+
+```text
+src/
+├── config/             Application configuration
+├── content/
+│   └── legal/          Legal documents and policies
+├── routes/             Application routes and pages
+├── lib/                Server function interfaces
+└── server/              Server-side services and infrastructure
+
+db/
+└── migrations/         Database schema and migrations
+
+docs/                   Technical documentation
+
+scripts/                Development and maintenance scripts
+```
+
+### Key Directories
+
+| Directory | Responsibility |
+|---|---|
+| `src/config/` | Application settings, plans, pricing and legal versions |
+| `src/content/legal/` | Terms of Use and Privacy Policy |
+| `src/routes/` | Public pages, authentication, dashboards, classrooms, quizzes and administration |
+| `src/lib/` | Server functions consumed by the application |
+| `src/server/` | Database, authentication, storage and server-side services |
+| `db/migrations/` | Version-controlled SQL schema, policies and database functions |
+| `docs/` | Setup, architecture, security and operational documentation |
+
+---
 
 ## Documentation
 
-- [`docs/SETUP-NEON.md`](docs/SETUP-NEON.md) — Neon project, Auth, database roles, storage, Vercel, first admin
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — how a request flows, and how to add a feature
-- [`docs/SECURITY.md`](docs/SECURITY.md) — controls, what was fixed, residual risks, launch checklist
-- [`docs/CUSTOMIZING.md`](docs/CUSTOMIZING.md) — change name, plans, pricing copy, legal text
-- [`docs/ADMIN.md`](docs/ADMIN.md) — the admin foundation and how to extend it
-- [`roadmap.md`](roadmap.md) · [`docs/north-star.md`](docs/north-star.md)
+Technical documentation is maintained in the `docs/` directory.
 
-> **Before launch:** the Terms and Privacy Policy are thorough templates, not legal advice. Have a qualified Nigerian lawyer review them, and fill in `VITE_LEGAL_ENTITY`, `VITE_LEGAL_ADDRESS` and `VITE_CONTACT_EMAIL`.
+| Document | Description |
+|---|---|
+| [Setup Guide](docs/SETUP-NEON.md) | Neon configuration, authentication, database roles, storage and Vercel deployment |
+| [Architecture](docs/ARCHITECTURE.md) | Application architecture, request lifecycle and feature development |
+| [Security](docs/SECURITY.md) | Security controls, implementation notes and deployment checklist |
+| [Customization](docs/CUSTOMIZING.md) | Application branding, plans, pricing and legal configuration |
+| [Administration](docs/ADMIN.md) | Administrative infrastructure and extension guidelines |
+| [Product Roadmap](roadmap.md) | Development priorities and planned improvements |
+| [Product Direction](docs/north-star.md) | Long-term product vision and direction |
+
+---
+
+## Configuration
+
+Application-specific settings are managed through the configuration files in `src/config/`.
+
+Before deployment, ensure the following environment variables are configured:
+
+- `VITE_LEGAL_ENTITY`
+- `VITE_LEGAL_ADDRESS`
+- `VITE_CONTACT_EMAIL`
+
+Refer to the setup and customization documentation for the complete environment configuration.
+
+---
+
+## Deployment
+
+Kominimo is configured for deployment on Vercel using the Nitro Vercel preset.
+
+Before deploying a new environment:
+
+1. Configure the required environment variables.
+2. Set up the Neon database and application roles.
+3. Apply all database migrations.
+4. Configure Neon Auth and Object Storage.
+5. Verify storage CORS settings.
+6. Run the environment validation checks.
+7. Generate and verify the production build.
+
+See [SETUP-NEON.md](docs/SETUP-NEON.md) for the complete deployment procedure.
+
+---
+
+## Legal
+
+The Terms of Use and Privacy Policy are maintained within `src/content/legal/`.
+
+These documents are initial templates and should undergo review by a qualified Nigerian legal practitioner before production use.
+
+---
+
+**Kominimo**  
+*Live learning infrastructure for modern education.*
+
